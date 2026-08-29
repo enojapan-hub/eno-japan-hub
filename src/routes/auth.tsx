@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,40 +78,9 @@ function AuthPage() {
             </TabsContent>
           </Tabs>
 
-          <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" />
-            atau
-            <span className="h-px flex-1 bg-border" />
-          </div>
-
-          <GoogleButton />
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function GoogleButton() {
-  const [loading, setLoading] = useState(false);
-
-  async function handleGoogle() {
-    setLoading(true);
-    try {
-      await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-      });
-    } catch (error) {
-      console.error(error);
-      toast.error("Masuk dengan Google gagal. Coba lagi atau gunakan email.");
-      setLoading(false);
-    }
-  }
-
-  return (
-    <Button variant="outline" className="w-full" onClick={handleGoogle} disabled={loading}>
-      {loading ? <Loader2 aria-hidden className="size-4 animate-spin" /> : null}
-      Lanjutkan dengan Google
-    </Button>
   );
 }
 
