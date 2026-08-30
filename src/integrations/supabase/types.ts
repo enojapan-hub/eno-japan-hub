@@ -132,6 +132,48 @@ export type Database = {
           },
         ]
       }
+      kanji_relations: {
+        Row: {
+          created_at: string
+          id: string
+          kanji_id: string
+          note_id: string | null
+          related_kanji_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kanji_id: string
+          note_id?: string | null
+          related_kanji_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kanji_id?: string
+          note_id?: string | null
+          related_kanji_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanji_relations_kanji_id_fkey"
+            columns: ["kanji_id"]
+            isOneToOne: false
+            referencedRelation: "kanji"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kanji_relations_related_kanji_id_fkey"
+            columns: ["related_kanji_id"]
+            isOneToOne: false
+            referencedRelation: "kanji"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       learning_sessions: {
         Row: {
           completed_at: string | null
@@ -309,12 +351,102 @@ export type Database = {
         }
         Relationships: []
       }
+      listening_items: {
+        Row: {
+          audio_url: string | null
+          created_at: string
+          duration_seconds: number
+          id: string
+          is_published: boolean
+          level: Database["public"]["Enums"]["jlpt_level"]
+          sort_order: number
+          source: Database["public"]["Enums"]["content_source"]
+          title: string
+          transcript_id: string | null
+          transcript_jp: string
+          updated_at: string
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          is_published?: boolean
+          level: Database["public"]["Enums"]["jlpt_level"]
+          sort_order?: number
+          source?: Database["public"]["Enums"]["content_source"]
+          title: string
+          transcript_id?: string | null
+          transcript_jp: string
+          updated_at?: string
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          is_published?: boolean
+          level?: Database["public"]["Enums"]["jlpt_level"]
+          sort_order?: number
+          source?: Database["public"]["Enums"]["content_source"]
+          title?: string
+          transcript_id?: string | null
+          transcript_jp?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listening_items_level_fkey"
+            columns: ["level"]
+            isOneToOne: false
+            referencedRelation: "levels"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      payment_events: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          id: string
+          plan: Database["public"]["Enums"]["plan_kind"]
+          provider: string
+          provider_ref: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          plan: Database["public"]["Enums"]["plan_kind"]
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          plan?: Database["public"]["Enums"]["plan_kind"]
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
           display_name: string | null
           id: string
+          referral_code: string | null
           target_level: string
           ui_language: string
           updated_at: string
@@ -324,6 +456,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          referral_code?: string | null
           target_level?: string
           ui_language?: string
           updated_at?: string
@@ -333,6 +466,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          referral_code?: string | null
           target_level?: string
           ui_language?: string
           updated_at?: string
@@ -351,6 +485,8 @@ export type Database = {
           item_type: Database["public"]["Enums"]["item_kind"] | null
           kind: Database["public"]["Enums"]["question_kind"]
           level: Database["public"]["Enums"]["jlpt_level"]
+          listening_id: string | null
+          passage_id: string | null
           prompt: string
           prompt_note: string | null
           skill: Database["public"]["Enums"]["skill_kind"]
@@ -368,6 +504,8 @@ export type Database = {
           item_type?: Database["public"]["Enums"]["item_kind"] | null
           kind?: Database["public"]["Enums"]["question_kind"]
           level: Database["public"]["Enums"]["jlpt_level"]
+          listening_id?: string | null
+          passage_id?: string | null
           prompt: string
           prompt_note?: string | null
           skill: Database["public"]["Enums"]["skill_kind"]
@@ -385,6 +523,8 @@ export type Database = {
           item_type?: Database["public"]["Enums"]["item_kind"] | null
           kind?: Database["public"]["Enums"]["question_kind"]
           level?: Database["public"]["Enums"]["jlpt_level"]
+          listening_id?: string | null
+          passage_id?: string | null
           prompt?: string
           prompt_note?: string | null
           skill?: Database["public"]["Enums"]["skill_kind"]
@@ -398,6 +538,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "levels"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "questions_listening_id_fkey"
+            columns: ["listening_id"]
+            isOneToOne: false
+            referencedRelation: "listening_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questions_passage_id_fkey"
+            columns: ["passage_id"]
+            isOneToOne: false
+            referencedRelation: "reading_passages"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -600,6 +754,146 @@ export type Database = {
           },
         ]
       }
+      reading_passages: {
+        Row: {
+          body_jp: string
+          created_at: string
+          estimated_minutes: number
+          id: string
+          is_published: boolean
+          level: Database["public"]["Enums"]["jlpt_level"]
+          sort_order: number
+          source: Database["public"]["Enums"]["content_source"]
+          title: string
+          translation_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          body_jp: string
+          created_at?: string
+          estimated_minutes?: number
+          id?: string
+          is_published?: boolean
+          level: Database["public"]["Enums"]["jlpt_level"]
+          sort_order?: number
+          source?: Database["public"]["Enums"]["content_source"]
+          title: string
+          translation_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body_jp?: string
+          created_at?: string
+          estimated_minutes?: number
+          id?: string
+          is_published?: boolean
+          level?: Database["public"]["Enums"]["jlpt_level"]
+          sort_order?: number
+          source?: Database["public"]["Enums"]["content_source"]
+          title?: string
+          translation_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_passages_level_fkey"
+            columns: ["level"]
+            isOneToOne: false
+            referencedRelation: "levels"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          points_awarded: number
+          referred_user_id: string | null
+          referrer_id: string
+          status: Database["public"]["Enums"]["referral_status"]
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          points_awarded?: number
+          referred_user_id?: string | null
+          referrer_id: string
+          status?: Database["public"]["Enums"]["referral_status"]
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          points_awarded?: number
+          referred_user_id?: string | null
+          referrer_id?: string
+          status?: Database["public"]["Enums"]["referral_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reward_grants: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          points_spent: number
+          premium_days: number | null
+          reward_kind: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          points_spent?: number
+          premium_days?: number | null
+          reward_kind: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          points_spent?: number
+          premium_days?: number | null
+          reward_kind?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      teacher_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          headline: string | null
+          is_verified: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          headline?: string | null
+          is_verified?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          headline?: string | null
+          is_verified?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_daily_activity: {
         Row: {
           activity_date: string
@@ -636,6 +930,42 @@ export type Database = {
           user_id?: string
           vocab_learned?: number
           xp_earned?: number
+        }
+        Relationships: []
+      }
+      user_entitlements: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          plan: Database["public"]["Enums"]["plan_kind"]
+          source: string
+          started_at: string
+          status: Database["public"]["Enums"]["entitlement_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["plan_kind"]
+          source?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["entitlement_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["plan_kind"]
+          source?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["entitlement_status"]
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -721,6 +1051,8 @@ export type Database = {
           daily_kanji_target: number
           daily_reminder: boolean
           daily_vocab_target: number
+          exam_date: string | null
+          exam_level: Database["public"]["Enums"]["jlpt_level"] | null
           furigana_enabled: boolean
           theme: string
           updated_at: string
@@ -732,6 +1064,8 @@ export type Database = {
           daily_kanji_target?: number
           daily_reminder?: boolean
           daily_vocab_target?: number
+          exam_date?: string | null
+          exam_level?: Database["public"]["Enums"]["jlpt_level"] | null
           furigana_enabled?: boolean
           theme?: string
           updated_at?: string
@@ -743,6 +1077,8 @@ export type Database = {
           daily_kanji_target?: number
           daily_reminder?: boolean
           daily_vocab_target?: number
+          exam_date?: string | null
+          exam_level?: Database["public"]["Enums"]["jlpt_level"] | null
           furigana_enabled?: boolean
           theme?: string
           updated_at?: string
@@ -757,6 +1093,7 @@ export type Database = {
           estimated_cefr: Database["public"]["Enums"]["cefr_level"] | null
           last_active_date: string | null
           longest_streak: number
+          reward_points: number
           total_xp: number
           updated_at: string
           user_id: string
@@ -767,6 +1104,7 @@ export type Database = {
           estimated_cefr?: Database["public"]["Enums"]["cefr_level"] | null
           last_active_date?: string | null
           longest_streak?: number
+          reward_points?: number
           total_xp?: number
           updated_at?: string
           user_id: string
@@ -777,6 +1115,7 @@ export type Database = {
           estimated_cefr?: Database["public"]["Enums"]["cefr_level"] | null
           last_active_date?: string | null
           longest_streak?: number
+          reward_points?: number
           total_xp?: number
           updated_at?: string
           user_id?: string
@@ -855,18 +1194,28 @@ export type Database = {
         Returns: boolean
       }
       is_content_editor: { Args: { _user_id: string }; Returns: boolean }
+      is_premium: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "teacher" | "owner"
       cefr_level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2"
       content_source: "eno_original" | "reference_derived"
+      entitlement_status: "active" | "expired" | "cancelled" | "pending"
       item_kind: "kanji" | "vocabulary" | "grammar"
       jlpt_level: "N5" | "N4" | "N3" | "N2" | "N1"
+      plan_kind: "free" | "premium_monthly" | "premium_yearly" | "lifetime"
       question_kind:
         | "multiple_choice"
         | "fill_blank"
         | "ordering"
         | "listening_choice"
+      referral_status:
+        | "pending"
+        | "registered"
+        | "verified"
+        | "active"
+        | "qualified"
+        | "reward_granted"
       skill_kind: "kanji" | "vocabulary" | "grammar" | "reading" | "listening"
     }
     CompositeTypes: {
@@ -995,16 +1344,26 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "teacher", "owner"],
       cefr_level: ["A1", "A2", "B1", "B2", "C1", "C2"],
       content_source: ["eno_original", "reference_derived"],
+      entitlement_status: ["active", "expired", "cancelled", "pending"],
       item_kind: ["kanji", "vocabulary", "grammar"],
       jlpt_level: ["N5", "N4", "N3", "N2", "N1"],
+      plan_kind: ["free", "premium_monthly", "premium_yearly", "lifetime"],
       question_kind: [
         "multiple_choice",
         "fill_blank",
         "ordering",
         "listening_choice",
+      ],
+      referral_status: [
+        "pending",
+        "registered",
+        "verified",
+        "active",
+        "qualified",
+        "reward_granted",
       ],
       skill_kind: ["kanji", "vocabulary", "grammar", "reading", "listening"],
     },
