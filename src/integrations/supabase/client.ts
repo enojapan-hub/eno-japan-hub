@@ -17,7 +17,6 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
       new Headers(init.headers).forEach((value, key) => headers.set(key, value));
     }
 
-    // New Supabase API keys are opaque strings, not bearer JWTs.
     if (isNewSupabaseApiKey(supabaseKey) && headers.get('Authorization') === `Bearer ${supabaseKey}`) {
       headers.delete('Authorization');
     }
@@ -28,16 +27,14 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 function createSupabaseClient() {
-  // Prefer Vite build-time environment variables. The public URL and
-  // publishable key are safe to ship to the browser and are used only as a
-  // fallback when the hosting environment does not inject VITE_* variables.
+  // These values are public Supabase browser configuration. Prefer Vite
+  // variables when the host provides them; the fallback keeps the app usable
+  // in environments where Lovable/Vercel does not inject VITE_* variables.
   const SUPABASE_URL =
     import.meta.env['VITE_SUPABASE_URL'] ||
-    process.env['SUPABASE_URL'] ||
     'https://esrfvfadwyjktbsighbc.supabase.co';
   const SUPABASE_PUBLISHABLE_KEY =
     import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
-    process.env['SUPABASE_PUBLISHABLE_KEY'] ||
     'sb_publishable_BhoU8oWeleKamHDHIjULqw_ARcZypsz';
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -54,8 +51,6 @@ function createSupabaseClient() {
 
 let _supabase: ReturnType<typeof createSupabaseClient> | undefined;
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
 export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>, {
   get(_, prop, receiver) {
     if (!_supabase) _supabase = createSupabaseClient();
