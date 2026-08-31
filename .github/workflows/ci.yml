@@ -24,8 +24,8 @@ jobs:
       - name: Generate TanStack routes
         run: npx @tanstack/router-cli@1.170.18 generate
 
-      - name: Build
-        run: npm run build
-
       - name: Typecheck
         run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
