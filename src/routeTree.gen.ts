@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedBelajarRouteImport } from './routes/_authenticated/belajar'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedKanjiRouteImport } from './routes/_authenticated/kanji'
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
 
 const IndexRoute = IndexRouteImport.update({
@@ -46,6 +47,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedKanjiRoute = AuthenticatedKanjiRouteImport.update({
+  id: '/kanji',
+  path: '/kanji',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
   id: '/profil',
   path: '/profil',
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/belajar': typeof AuthenticatedBelajarRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/kanji': typeof AuthenticatedKanjiRoute
   '/profil': typeof AuthenticatedProfilRoute
 }
 export interface FileRoutesByTo {
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/belajar': typeof AuthenticatedBelajarRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/kanji': typeof AuthenticatedKanjiRoute
   '/profil': typeof AuthenticatedProfilRoute
 }
 export interface FileRoutesById {
@@ -76,14 +84,28 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/belajar': typeof AuthenticatedBelajarRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/kanji': typeof AuthenticatedKanjiRoute
   '/_authenticated/profil': typeof AuthenticatedProfilRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/reset-password' | '/belajar' | '/dashboard' | '/profil'
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/belajar'
+    | '/dashboard'
+    | '/kanji'
+    | '/profil'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/reset-password' | '/belajar' | '/dashboard' | '/profil'
+  to:
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/belajar'
+    | '/dashboard'
+    | '/kanji'
+    | '/profil'
   id:
     | '__root__'
     | '/'
@@ -92,6 +114,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/belajar'
     | '/_authenticated/dashboard'
+    | '/_authenticated/kanji'
     | '/_authenticated/profil'
   fileRoutesById: FileRoutesById
 }
@@ -146,6 +169,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/kanji': {
+      id: '/_authenticated/kanji'
+      path: '/kanji'
+      fullPath: '/kanji'
+      preLoaderRoute: typeof AuthenticatedKanjiRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/profil': {
       id: '/_authenticated/profil'
       path: '/profil'
@@ -159,12 +189,14 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBelajarRoute: typeof AuthenticatedBelajarRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedKanjiRoute: typeof AuthenticatedKanjiRoute
   AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBelajarRoute: AuthenticatedBelajarRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedKanjiRoute: AuthenticatedKanjiRoute,
   AuthenticatedProfilRoute: AuthenticatedProfilRoute,
 }
 
