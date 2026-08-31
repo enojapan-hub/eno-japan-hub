@@ -1,0 +1,3 @@
+ENO JAPAN V1 backup marker
+Base main commit: 66fe1516c8801db7ab6b168190fb4b69cc6905b0
+Purpose: checkpoint before functional learning/content fixes.
