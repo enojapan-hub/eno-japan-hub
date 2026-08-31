@@ -1,0 +1,18 @@
+{
+  "level":"N5",
+  "planned_batches":12,
+  "batch_01":"existing",
+  "batch_02":"existing",
+  "batch_03":"existing",
+  "batch_04":"existing",
+  "batch_05":"existing",
+  "batch_06":"existing",
+  "batch_07":"existing",
+  "batch_08":"existing",
+  "batch_09":"added",
+  "batch_10":"added",
+  "batch_11":"added_and_validated",
+  "batch_12":"added",
+  "status":"N5 seed batch sequence complete",
+  "next_stage":"validate, deduplicate, map to database schema, then proceed to N4"
+}
