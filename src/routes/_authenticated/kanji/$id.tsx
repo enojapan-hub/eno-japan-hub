@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { fetchKanjiDetail, markItemLearned } from "@/lib/learn-queries";
+import { fetchKanjiDetail, markItemLearned, type Level } from "@/lib/learn-queries";
 
 export const Route = createFileRoute("/_authenticated/kanji/$id")({ component: KanjiDetailPage });
 
@@ -14,7 +14,8 @@ function KanjiDetailPage() {
   const qc = useQueryClient();
   const [done, setDone] = useState(false);
   const { data, isLoading, error } = useQuery({ queryKey: ["kanji-detail", id], queryFn: () => fetchKanjiDetail(id) });
-  const mutation = useMutation({ mutationFn: () => markItemLearned({ itemType: "kanji", itemId: id, level: data?.kanji?.level }), onSuccess: () => { setDone(true); void qc.invalidateQueries({ queryKey: ["my-progress"] }); } });
+  const level = (data?.kanji?.level ?? "N5") as Level;
+  const mutation = useMutation({ mutationFn: () => markItemLearned({ itemType: "kanji", itemId: id, level }), onSuccess: () => { setDone(true); void qc.invalidateQueries({ queryKey: ["my-progress"] }); } });
   const k = data?.kanji;
 
   if (isLoading) return <AppShell title="Kanji"><p className="text-sm text-muted-foreground">Memuat materi…</p></AppShell>;
