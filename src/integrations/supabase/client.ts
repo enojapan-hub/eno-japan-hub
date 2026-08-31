@@ -27,15 +27,12 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 function createSupabaseClient() {
-  // These values are public Supabase browser configuration. Prefer Vite
-  // variables when the host provides them; the fallback keeps the app usable
-  // in environments where Lovable/Vercel does not inject VITE_* variables.
   const SUPABASE_URL =
     import.meta.env['VITE_SUPABASE_URL'] ||
-    'https://esrfvfadwyjktbsighbc.supabase.co';
+    'https://upxtqsvgppvqpbrjoitz.supabase.co';
   const SUPABASE_PUBLISHABLE_KEY =
     import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
-    'sb_publishable_BhoU8oWeleKamHDHIjULqw_ARcZypsz';
+    'sb_publishable_lOFCqoqCndJ5DE_3S4RKjQ_28F6nK6u';
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {
