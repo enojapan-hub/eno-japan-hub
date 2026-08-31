@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { fetchQuizzes, type Level } from "@/lib/learn-queries";
-import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/quiz")({ component: QuizPage });
 
@@ -32,7 +31,7 @@ function QuizPage() {
             <CardHeader><div className="flex items-center justify-between gap-3"><CardTitle className="text-base">{q.title}</CardTitle><Badge>{q.level}</Badge></div></CardHeader>
             <CardContent>
               <p className="mb-4 text-sm text-muted-foreground">{q.description || "Latihan untuk mengukur pemahamanmu."}</p>
-              <div className="mb-4 text-xs text-muted-foreground">{q.question_count} soal · {Math.round(q.time_limit_seconds / 60)} menit · {q.skill}</div>
+              <div className="mb-4 text-xs text-muted-foreground">{q.question_count} soal · {Math.round((q.time_limit_seconds ?? 0) / 60)} menit · {q.skill}</div>
               <Button asChild><Link to="/quiz/$slug" params={{ slug: q.slug }}>Mulai Quiz</Link></Button>
             </CardContent>
           </Card>
