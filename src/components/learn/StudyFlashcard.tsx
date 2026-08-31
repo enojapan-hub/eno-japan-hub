@@ -1,41 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
 type Example = { jp?: string; id?: string; reading?: string };
-
-export function StudyFlashcard({
-  index, total, level, title, reading, meaning, secondary, structure, explanation, examples, onPrev, onNext, onLearned, learned,
-}: {
-  index: number; total: number; level: string; title: string; reading?: string | null; meaning: string; secondary?: string | null; structure?: string | null; explanation?: string | null; examples?: Example[]; onPrev: () => void; onNext: () => void; onLearned?: () => void; learned?: boolean;
-}) {
-  const [showAnswer, setShowAnswer] = useState(false);
-  const example = examples?.[0];
-  const progress = total ? Math.round(((index + 1) / total) * 100) : 0;
-  return (
-    <div className="mx-auto max-w-2xl">
-      <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground"><span>Kartu {index + 1} dari {total}</span><span>{progress}%</span></div>
-      <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} /></div>
-      <Card className="overflow-hidden border-primary/20 shadow-lg">
-        <CardHeader className="space-y-4 bg-gradient-to-br from-primary/10 via-background to-secondary/20 pb-7 text-center">
-          <div className="flex justify-center"><Badge variant="secondary">{level}</Badge></div>
-          <div lang="ja" className="font-jp text-5xl font-bold tracking-wide sm:text-6xl">{title}</div>
-          {reading && <div lang="ja" className="text-base text-muted-foreground">{reading}</div>}
-          <p className="text-lg font-semibold">{meaning}</p>
-          {secondary && <p className="text-sm text-muted-foreground">{secondary}</p>}
-        </CardHeader>
-        <CardContent className="space-y-4 p-5 sm:p-7">
-          <Button className="w-full" variant={showAnswer ? "secondary" : "default"} onClick={() => setShowAnswer(v => !v)}>{showAnswer ? "Sembunyikan penjelasan" : "Buka penjelasan lengkap"}</Button>
-          {showAnswer && <div className="space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-300">
-            {structure && <section className="rounded-xl border bg-muted/40 p-4"><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Struktur</p><p lang="ja" className="font-jp text-lg">{structure}</p></section>}
-            {explanation && <section className="rounded-xl border bg-muted/40 p-4"><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Penjelasan</p><p className="leading-7">{explanation}</p></section>}
-            {example?.jp && <section className="rounded-xl border bg-muted/40 p-4"><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contoh kalimat</p><p lang="ja" className="font-jp text-lg leading-8">{example.jp}</p>{example.reading && <p lang="ja" className="mt-2 text-sm text-muted-foreground">{example.reading}</p>}{example.id && <p className="mt-2 text-sm">{example.id}</p>}</section>}
-            <section className="rounded-xl border border-primary/20 bg-primary/5 p-4"><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary">Contoh soal</p><p className="font-medium">Pilih penggunaan yang paling tepat untuk <span lang="ja" className="font-jp">{title}</span> berdasarkan penjelasan di atas.</p><p className="mt-2 text-sm text-muted-foreground">Setelah memahami kartu ini, lanjutkan ke Quiz untuk menguji pemahamanmu.</p></section>
-          </div>}
-          <div className="flex gap-2"><Button variant="outline" className="flex-1" onClick={() => { setShowAnswer(false); onPrev(); }} disabled={index === 0}>← Sebelumnya</Button>{onLearned && <Button variant={learned ? "secondary" : "outline"} onClick={onLearned}>{learned ? "✓ Dipelajari" : "Tandai dipelajari"}</Button>}<Button className="flex-1" onClick={() => { setShowAnswer(false); onNext(); }} disabled={index === total - 1}>Berikutnya →</Button></div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+export function StudyFlashcard({ index, total, level, title, reading, meaning, secondary, structure, explanation, examples, question, onPrev, onNext, onLearned, learned }: { index:number; total:number; level:string; title:string; reading?:string|null; meaning:string; secondary?:string|null; structure?:string|null; explanation?:string|null; examples?:Example[]; question?:{prompt:string;choices:string[];correctIndex:number}|null; onPrev:()=>void; onNext:()=>void; onLearned?:()=>void; learned?:boolean }) {
+  const [showAnswer,setShowAnswer]=useState(false); const [selected,setSelected]=useState<number|null>(null); const example=examples?.[0]; const progress=total?Math.round(((index+1)/total)*100):0;
+  useEffect(()=>{setShowAnswer(false);setSelected(null)},[index,title]);
+  return <div className="mx-auto max-w-2xl"><div className="mb-3 flex items-center justify-between text-xs text-muted-foreground"><span>Kartu {index+1} dari {total}</span><span>{progress}%</span></div><div className="mb-4 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all duration-300" style={{width:`${progress}%`}}/></div>
+    <Card className="overflow-hidden border-primary/20 shadow-lg"><CardHeader className="space-y-4 bg-gradient-to-br from-primary/10 via-background to-secondary/20 pb-7 text-center"><div className="flex justify-center"><Badge variant="secondary">{level}</Badge></div><div lang="ja" className="font-jp text-5xl font-bold tracking-wide sm:text-6xl">{title}</div>{reading&&<div lang="ja" className="text-base text-muted-foreground">{reading}</div>}<p className="text-lg font-semibold">{meaning}</p>{secondary&&<p className="text-sm text-muted-foreground">{secondary}</p>}</CardHeader>
+      <CardContent className="space-y-4 p-5 sm:p-7"><Button className="w-full" variant={showAnswer?"secondary":"default"} onClick={()=>setShowAnswer(v=>!v)}>{showAnswer?"Tutup penjelasan":"Buka penjelasan lengkap"}</Button>
+        {showAnswer&&<div className="space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-300">{structure&&<section className="rounded-xl border bg-muted/40 p-4"><p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground">STRUKTUR</p><p lang="ja" className="font-jp text-lg">{structure}</p></section>}{explanation&&<section className="rounded-xl border bg-muted/40 p-4"><p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground">PENJELASAN</p><p className="leading-7">{explanation}</p></section>}{example?.jp&&<section className="rounded-xl border bg-muted/40 p-4"><p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground">CONTOH KALIMAT</p><p lang="ja" className="font-jp text-lg leading-8">{example.jp}</p>{example.reading&&<p lang="ja" className="mt-2 text-sm text-muted-foreground">{example.reading}</p>}{example.id&&<p className="mt-2 text-sm">{example.id}</p>}</section>}
+          {question&&<section className="rounded-xl border border-primary/20 bg-primary/5 p-4"><p className="mb-2 text-xs font-semibold tracking-wide text-primary">CEK PEMAHAMAN</p><p className="mb-3 font-medium">{question.prompt}</p><div className="grid gap-2">{question.choices.map((choice,i)=><Button key={`${choice}-${i}`} variant={selected===i?(i===question.correctIndex?"secondary":"destructive"):"outline"} className="justify-start whitespace-normal text-left" onClick={()=>setSelected(i)}>{String.fromCharCode(65+i)}. {choice}</Button>)}</div>{selected!==null&&<p className="mt-3 text-sm font-medium">{selected===question.correctIndex?"✓ Benar. Bagus, lanjutkan.":`✗ Belum tepat. Jawaban: ${String.fromCharCode(65+question.correctIndex)}.`}</p>}</section>}
+        </div>}
+        <div className="flex gap-2"><Button variant="outline" className="flex-1" onClick={()=>onPrev()} disabled={index===0}>← Sebelumnya</Button>{onLearned&&<Button variant={learned?"secondary":"outline"} onClick={onLearned}>{learned?"✓ Dipelajari":"Tandai dipelajari"}</Button>}<Button className="flex-1" onClick={()=>onNext()} disabled={index===total-1}>Berikutnya →</Button></div>
+      </CardContent></Card></div>;
 }
