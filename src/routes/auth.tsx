@@ -5,25 +5,22 @@ import { Loader2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BrandMark } from "@/components/layout/BrandMark";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Masuk atau Daftar — ENO JAPAN" },
+      { title: "Masuk — ENO JAPAN" },
       {
         name: "description",
         content:
-          "Masuk ke ENO JAPAN untuk belajar kanji, kotoba, dan bunpo serta menyiapkan JLPT N5–N1.",
+          "Masuk ke ENO JAPAN dengan akun Google untuk belajar kanji, kotoba, bunpo, dan menyiapkan JLPT N5–N1.",
       },
-      { property: "og:title", content: "Masuk atau Daftar — ENO JAPAN" },
+      { property: "og:title", content: "Masuk — ENO JAPAN" },
       {
         property: "og:description",
-        content: "Akun gratis ENO JAPAN memberi akses belajar N5–N1.",
+        content: "Masuk dengan Google untuk melanjutkan belajar di ENO JAPAN.",
       },
     ],
   }),
@@ -33,6 +30,8 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -43,6 +42,27 @@ function AuthPage() {
       }
     });
   }, [navigate]);
+
+  async function signInWithGoogle() {
+    setError(null);
+    setLoading(true);
+
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+
+      if (oauthError) throw oauthError;
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Gagal masuk dengan Google.";
+      setError(message);
+      toast.error(message);
+      setLoading(false);
+    }
+  }
 
   if (checking) {
     return (
@@ -59,151 +79,34 @@ function AuthPage() {
       </Link>
       <Card className="w-full max-w-md border-border/70 bg-card">
         <CardHeader>
-          <CardTitle>Selamat datang</CardTitle>
+          <CardTitle>Selamat datang di ENO JAPAN</CardTitle>
           <CardDescription>
-            Akun gratis memberi akses materi N5–N1. Premium menambah personalisasi dan fitur AI.
+            Masuk atau buat akun secara otomatis menggunakan akun Google kamu.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="signin">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Masuk</TabsTrigger>
-              <TabsTrigger value="signup">Daftar</TabsTrigger>
-            </TabsList>
-            <TabsContent value="signin" className="pt-4">
-              <EmailForm mode="signin" />
-            </TabsContent>
-            <TabsContent value="signup" className="pt-4">
-              <EmailForm mode="signup" />
-            </TabsContent>
-          </Tabs>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={signInWithGoogle}
+            disabled={loading}
+          >
+            {loading ? <Loader2 aria-hidden className="size-4 animate-spin" /> : null}
+            {loading ? "Menghubungkan ke Google..." : "Lanjutkan dengan Google"}
+          </Button>
 
+          {error ? (
+            <p role="alert" className="mt-4 text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
+
+          <p className="mt-5 text-center text-xs text-muted-foreground">
+            Dengan melanjutkan, kamu menyetujui penggunaan akun Google untuk autentikasi ENO JAPAN.
+          </p>
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function EmailForm({ mode }: { mode: "signin" | "signup" }) {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function onSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    setError(null);
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Format email tidak valid.");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Kata sandi minimal 8 karakter.");
-      return;
-    }
-    if (mode === "signup" && displayName.trim().length < 2) {
-      setError("Nama tampilan minimal 2 karakter.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      if (mode === "signup") {
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
-            data: { display_name: displayName.trim() },
-          },
-        });
-        if (signUpError) throw signUpError;
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
-          toast.success("Akun dibuat. Selamat belajar!");
-          navigate({ to: "/dashboard", replace: true });
-        } else {
-          toast.success("Cek email kamu untuk konfirmasi akun.");
-        }
-      } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInError) throw signInError;
-        navigate({ to: "/dashboard", replace: true });
-      }
-    } catch (caught) {
-      const message = caught instanceof Error ? caught.message : "Terjadi kesalahan.";
-      setError(
-        message.toLowerCase().includes("invalid login")
-          ? "Email atau kata sandi salah."
-          : message.toLowerCase().includes("already registered")
-            ? "Email ini sudah terdaftar. Silakan masuk."
-            : message,
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <form onSubmit={onSubmit} className="space-y-4" noValidate>
-      {mode === "signup" ? (
-        <div className="space-y-2">
-          <Label htmlFor={`${mode}-name`}>Nama tampilan</Label>
-          <Input
-            id={`${mode}-name`}
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            autoComplete="name"
-            required
-          />
-        </div>
-      ) : null}
-
-      <div className="space-y-2">
-        <Label htmlFor={`${mode}-email`}>Email</Label>
-        <Input
-          id={`${mode}-email`}
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor={`${mode}-password`}>Kata sandi</Label>
-        <Input
-          id={`${mode}-password`}
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete={mode === "signup" ? "new-password" : "current-password"}
-          required
-        />
-      </div>
-
-      {error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
-
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? <Loader2 aria-hidden className="size-4 animate-spin" /> : null}
-        {mode === "signup" ? "Buat akun gratis" : "Masuk"}
-      </Button>
-
-      {mode === "signin" ? (
-        <p className="text-center text-sm text-muted-foreground">
-          <Link to="/reset-password" className="underline underline-offset-4 hover:text-foreground">
-            Lupa kata sandi?
-          </Link>
-        </p>
-      ) : null}
-    </form>
   );
 }
