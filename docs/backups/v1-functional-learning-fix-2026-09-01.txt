@@ -1,0 +1,3 @@
+ENO JAPAN V1 functional learning checkpoint
+Includes: dynamic daily content windows, real meaning fields, richer kanji/kotoba/bunpo cards, social follow reward migration source.
+Latest source checkpoint before this marker: ca33409189e79ef766289920e57e21cc06a1ede2 and subsequent commits.
