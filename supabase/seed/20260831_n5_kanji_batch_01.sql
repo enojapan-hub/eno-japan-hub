@@ -1,0 +1,50 @@
+-- ENO JAPAN N5 KANJI CORE BATCH 01
+-- Original explanations/examples; readings and meanings are standard Japanese-language data.
+
+insert into public.kanji (level, character, onyomi, kunyomi, meaning_id, meaning_en, stroke_count, examples, mnemonic, source, is_published, sort_order)
+select k.level, k.character, k.onyomi::text[], k.kunyomi::text[], k.meaning_id, k.meaning_en, k.stroke_count, k.examples::jsonb, k.mnemonic, 'eno_original', true, k.sort_order
+from (values
+('N5','一','イチ,イツ','ひと,ひとつ','satu','one',1,'[{"jp":"一人","reading":"ひとり","id":"satu orang"},{"jp":"一月","reading":"いちがつ","id":"Januari"}]','Satu garis: satu. ',301),
+('N5','二','ニ','ふた,ふたつ','dua','two',2,'[{"jp":"二人","reading":"ふたり","id":"dua orang"},{"jp":"二月","reading":"にがつ","id":"Februari"}]','Dua garis: dua.',302),
+('N5','三','サン','み,みつ','tiga','three',3,'[{"jp":"三人","reading":"さんにん","id":"tiga orang"},{"jp":"三月","reading":"さんがつ","id":"Maret"}]','Tiga garis: tiga.',303),
+('N5','四','シ','よ,よつ,よん','empat','four',5,'[{"jp":"四人","reading":"よにん","id":"empat orang"},{"jp":"四月","reading":"しがつ","id":"April"}]','Empat sisi membentuk kotak.',304),
+('N5','五','ゴ','いつ,いつつ','lima','five',4,'[{"jp":"五人","reading":"ごにん","id":"lima orang"},{"jp":"五月","reading":"ごがつ","id":"Mei"}]','Lima sebagai simpul di tengah.',305),
+('N5','六','ロク','む,むつ,むっつ','enam','six',4,'[{"jp":"六月","reading":"ろくがつ","id":"Juni"},{"jp":"六人","reading":"ろくにん","id":"enam orang"}]','Bentuk kepala dan kaki: enam.',306),
+('N5','七','シチ','なな,ななつ','tujuh','seven',2,'[{"jp":"七月","reading":"しちがつ","id":"Juli"},{"jp":"七人","reading":"しちにん","id":"tujuh orang"}]','Garis yang dipotong: tujuh.',307),
+('N5','八','ハチ','や,やつ,やっつ','delapan','eight',2,'[{"jp":"八月","reading":"はちがつ","id":"Agustus"},{"jp":"八人","reading":"はちにん","id":"delapan orang"}]','Dua garis terbuka: delapan.',308),
+('N5','九','キュウ,ク','ここの,ここのつ','sembilan','nine',2,'[{"jp":"九月","reading":"くがつ","id":"September"},{"jp":"九人","reading":"きゅうにん","id":"sembilan orang"}]','Bentuk kait menuju akhir satu digit.',309),
+('N5','十','ジュウ','とお','sepuluh','ten',2,'[{"jp":"十人","reading":"じゅうにん","id":"sepuluh orang"},{"jp":"十月","reading":"じゅうがつ","id":"Oktober"}]','Tanda silang sebagai sepuluh.',310),
+('N5','百','ヒャク','もも','seratus','hundred',6,'[{"jp":"百円","reading":"ひゃくえん","id":"100 yen"},{"jp":"三百","reading":"さんびゃく","id":"300"}]','Satu dan seratus: 百.',311),
+('N5','千','セン','ち','seribu','thousand',3,'[{"jp":"千円","reading":"せんえん","id":"1000 yen"},{"jp":"三千","reading":"さんぜん","id":"3000"}]','Garis dengan tanda kecil: seribu.',312),
+('N5','万','マン,バン','よろず','sepuluh ribu','ten thousand',3,'[{"jp":"一万円","reading":"いちまんえん","id":"10,000 yen"},{"jp":"万人","reading":"まんにん","id":"puluhan ribu orang"}]','Bentuk menyebar luas: 万.',313),
+('N5','円','エン','まるい','yen; lingkaran','yen; circle',4,'[{"jp":"百円","reading":"ひゃくえん","id":"100 yen"},{"jp":"円い","reading":"まるい","id":"bulat"}]','Bentuk bulat/lingkaran.',314),
+('N5','年','ネン','とし','tahun','year',6,'[{"jp":"今年","reading":"ことし","id":"tahun ini"},{"jp":"来年","reading":"らいねん","id":"tahun depan"}]','Catatan perjalanan waktu satu tahun.',315),
+('N5','時','ジ','とき','waktu; jam','time; hour',10,'[{"jp":"三時","reading":"さんじ","id":"jam tiga"},{"jp":"時間","reading":"じかん","id":"waktu; jam"}]','Matahari dan ukuran waktu.',316),
+('N5','分','ブン,フン','わかる,わける','menit; membagi','minute; divide',4,'[{"jp":"五分","reading":"ごふん","id":"lima menit"},{"jp":"分かります","reading":"わかります","id":"mengerti"}]','Sesuatu yang dibagi menjadi bagian.',317),
+('N5','半','ハン','なかば','setengah','half',5,'[{"jp":"半分","reading":"はんぶん","id":"setengah"},{"jp":"一時半","reading":"いちじはん","id":"jam satu lewat tiga puluh"}]','Sesuatu dibelah menjadi dua.',318),
+('N5','前','ゼン','まえ','depan; sebelum','front; before',9,'[{"jp":"午前","reading":"ごぜん","id":"pagi; AM"},{"jp":"名前","reading":"なまえ","id":"nama"}]','Bagian di depan.',319),
+('N5','後','ゴ,コウ','あと,うしろ','belakang; setelah','after; behind',9,'[{"jp":"午後","reading":"ごご","id":"sore; PM"},{"jp":"後ろ","reading":"うしろ","id":"belakang"}]','Bagian yang berada setelah/di belakang.',320),
+('N5','今','コン,キン','いま','sekarang','now',4,'[{"jp":"今日","reading":"きょう","id":"hari ini"},{"jp":"今週","reading":"こんしゅう","id":"minggu ini"}]','Waktu saat ini.',321),
+('N5','毎','マイ','ごと','setiap','every',6,'[{"jp":"毎日","reading":"まいにち","id":"setiap hari"},{"jp":"毎週","reading":"まいしゅう","id":"setiap minggu"}]','Pola yang berulang setiap kali.',322),
+('N5','週','シュウ','—','minggu','week',11,'[{"jp":"今週","reading":"こんしゅう","id":"minggu ini"},{"jp":"来週","reading":"らいしゅう","id":"minggu depan"}]','Siklus waktu mingguan.',323),
+('N5','東','トウ','ひがし','timur','east',8,'[{"jp":"東京","reading":"とうきょう","id":"Tokyo"},{"jp":"東口","reading":"ひがしぐち","id":"pintu timur"}]','Arah matahari terbit.',324),
+('N5','西','セイ,サイ','にし','barat','west',6,'[{"jp":"西口","reading":"にしぐち","id":"pintu barat"},{"jp":"西日本","reading":"にしにほん","id":"Jepang bagian barat"}]','Arah matahari terbenam.',325),
+('N5','南','ナン,ナ','みなみ','selatan','south',9,'[{"jp":"南口","reading":"みなみぐち","id":"pintu selatan"},{"jp":"南日本","reading":"みなみにほん","id":"Jepang selatan"}]','Arah selatan.',326),
+('N5','北','ホク','きた','utara','north',5,'[{"jp":"北口","reading":"きたぐち","id":"pintu utara"},{"jp":"北海道","reading":"ほっかいどう","id":"Hokkaido"}]','Arah utara.',327),
+('N5','口','コウ,ク','くち','mulut; pintu masuk','mouth; entrance',3,'[{"jp":"入口","reading":"いりぐち","id":"pintu masuk"},{"jp":"出口","reading":"でぐち","id":"pintu keluar"}]','Bentuk mulut yang terbuka.',328),
+('N5','目','モク,ボク','め','mata; nomor','eye; item',5,'[{"jp":"目","reading":"め","id":"mata"},{"jp":"一番目","reading":"いちばんめ","id":"yang pertama"}]','Bentuk mata.',329),
+('N5','耳','ジ','みみ','telinga','ear',6,'[{"jp":"耳","reading":"みみ","id":"telinga"},{"jp":"耳鼻科","reading":"じびか","id":"bagian THT"}]','Bentuk telinga.',330),
+('N5','手','シュ','て','tangan','hand',4,'[{"jp":"手","reading":"て","id":"tangan"},{"jp":"上手","reading":"じょうず","id":"pandai"}]','Bentuk tangan.',331),
+('N5','足','ソク','あし,たりる,たす','kaki; cukup','foot; enough',7,'[{"jp":"足","reading":"あし","id":"kaki"},{"jp":"足ります","reading":"たります","id":"cukup"}]','Kaki dan kemampuan untuk bergerak.',332),
+('N5','力','リョク,リキ','ちから','kekuatan','power; strength',2,'[{"jp":"力","reading":"ちから","id":"kekuatan"},{"jp":"力持ち","reading":"ちからもち","id":"orang kuat"}]','Bentuk lengan yang kuat.',333),
+('N5','男','ダン,ナン','おとこ','laki-laki','man; male',7,'[{"jp":"男の人","reading":"おとこのひと","id":"laki-laki"},{"jp":"男性","reading":"だんせい","id":"pria"}]','Sawah dan tenaga: laki-laki dalam konteks tradisional.',334),
+('N5','女','ジョ,ニョ','おんな','perempuan','woman; female',3,'[{"jp":"女の人","reading":"おんなのひと","id":"perempuan"},{"jp":"女性","reading":"じょせい","id":"wanita"}]','Bentuk figur perempuan.',335),
+('N5','子','シ,ス','こ','anak','child',3,'[{"jp":"子ども","reading":"こども","id":"anak"},{"jp":"女子","reading":"じょし","id":"perempuan; siswi"}]','Bentuk anak kecil.',336),
+('N5','父','フ','ちち','ayah','father',4,'[{"jp":"父","reading":"ちち","id":"ayah saya"},{"jp":"お父さん","reading":"おとうさん","id":"ayah"}]','Bentuk ayah dalam karakter keluarga.',337),
+('N5','母','ボ','はは','ibu','mother',5,'[{"jp":"母","reading":"はは","id":"ibu saya"},{"jp":"お母さん","reading":"おかあさん","id":"ibu"}]','Bentuk ibu dalam karakter keluarga.',338),
+('N5','兄','ケイ,キョウ','あに','kakak laki-laki','older brother',5,'[{"jp":"兄","reading":"あに","id":"kakak laki-laki saya"},{"jp":"お兄さん","reading":"おにいさん","id":"kakak laki-laki"}]','Kakak laki-laki dalam keluarga.',339),
+('N5','姉','シ','あね','kakak perempuan','older sister',8,'[{"jp":"姉","reading":"あね","id":"kakak perempuan saya"},{"jp":"お姉さん","reading":"おねえさん","id":"kakak perempuan"}]','Kakak perempuan dalam keluarga.',340),
+('N5','弟','テイ,ダイ,デ','おとうと','adik laki-laki','younger brother',7,'[{"jp":"弟","reading":"おとうと","id":"adik laki-laki saya"},{"jp":"兄弟","reading":"きょうだい","id":"saudara"}]','Adik laki-laki dalam keluarga.',341),
+('N5','妹','マイ','いもうと','adik perempuan','younger sister',8,'[{"jp":"妹","reading":"いもうと","id":"adik perempuan saya"},{"jp":"姉妹","reading":"しまい","id":"saudara perempuan"}]','Adik perempuan dalam keluarga.',342)
+) as k(level,character,onyomi,kunyomi,meaning_id,meaning_en,stroke_count,examples,mnemonic,sort_order)
+where not exists (select 1 from public.kanji x where x.level=k.level and x.character=k.character);
