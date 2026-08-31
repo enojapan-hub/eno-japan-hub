@@ -5,7 +5,6 @@ export const LEVELS: Level[] = ["N5", "N4", "N3", "N2", "N1"];
 export type Example = { jp?: string; id?: string; reading?: string };
 export function asExamples(value: unknown): Example[] { return Array.isArray(value) ? value as Example[] : []; }
 function must<T>(res: { data: T | null; error: { message: string } | null }): T { if (res.error) throw new Error(res.error.message); return (res.data ?? []) as T; }
-
 function dayNumber() { return Math.floor(Date.now() / 86400000); }
 function windowStart(count: number, step: number) { return count > 0 ? (dayNumber() * step) % count : 0; }
 
@@ -17,10 +16,19 @@ export async function fetchKanjiList(level: Level) {
   return must(await supabase.from("kanji").select("id, character, level, onyomi, kunyomi, meaning_id, meaning_en, stroke_count, sort_order").eq("level", level).eq("is_published", true).order("sort_order").range(windowStart(count, 17), windowStart(count, 17) + 59));
 }
 
-export async function fetchKanjiDetail(id: string) {
-  const kanji = must(await supabase.from("kanji").select("*").eq("id", id).eq("is_published", true).limit(1));
-  const relations = must(await supabase.from("kanji_relations").select("id, note_id, sort_order, related:related_kanji_id (id, character, meaning_id, level)").eq("kanji_id", id).order("sort_order"));
-  return { kanji: kanji[0] ?? null, relations };
+export async function fetchKanjiStudy(id: string) {
+  const kanjiRows = must(await supabase.from("kanji").select("*").eq("id", id).eq("is_published", true).limit(1));
+  const kanji = kanjiRows[0] ?? null;
+  if (!kanji) return { kanji: null, examples: [] as Example[] };
+  const char = String(kanji.character ?? "");
+  const vocabRows = must(await supabase.from("vocabulary").select("term, reading, meaning_id, examples").eq("is_published", true).ilike("term", `%${char}%`).limit(5));
+  const examples: Example[] = [];
+  for (const v of vocabRows as Array<Record<string, unknown>>) {
+    const ve = asExamples(v.examples);
+    if (ve.length) examples.push(...ve);
+    else if (v.term) examples.push({ jp: String(v.term), reading: v.reading ? String(v.reading) : undefined, id: v.meaning_id ? String(v.meaning_id) : undefined });
+  }
+  return { kanji, examples: examples.slice(0, 5) };
 }
 
 export async function fetchVocabList(level: Level) {
@@ -30,7 +38,6 @@ export async function fetchVocabList(level: Level) {
   if (!count) return [];
   return must(await supabase.from("vocabulary").select("id, term, reading, romaji, meaning_id, meaning_en, part_of_speech, examples, level, sort_order").eq("level", level).eq("is_published", true).order("sort_order").range(windowStart(count, 31), windowStart(count, 31) + 59));
 }
-
 export async function fetchGrammarList(level: Level) {
   const countRes = await supabase.from("grammar_points").select("id", { count: "exact", head: true }).eq("level", level).eq("is_published", true);
   if (countRes.error) throw new Error(countRes.error.message);
@@ -38,7 +45,6 @@ export async function fetchGrammarList(level: Level) {
   if (!count) return [];
   return must(await supabase.from("grammar_points").select("id, pattern, meaning_id, meaning_en, structure, explanation_id, explanation_en, examples, level, sort_order").eq("level", level).eq("is_published", true).order("sort_order").range(windowStart(count, 13), windowStart(count, 13) + 39));
 }
-
 export async function fetchPassages() { return must(await supabase.from("reading_passages").select("id, title, level, body_jp, translation_id, translation_en, estimated_minutes, sort_order").eq("is_published", true).order("sort_order")); }
 export async function fetchPassageDetail(id: string) { const passages = must(await supabase.from("reading_passages").select("*").eq("id", id).limit(1)); const questions = must(await supabase.from("questions").select("id, prompt, prompt_note, choices, correct_index, explanation_id, explanation_en").eq("passage_id", id).eq("is_published", true)); return { passage: passages[0] ?? null, questions }; }
 export async function fetchListeningList() { return must(await supabase.from("listening_items").select("id, title, level, duration_seconds, sort_order, audio_url, question_type, audio_license, audio_attribution, source").eq("is_published", true).order("sort_order")); }
