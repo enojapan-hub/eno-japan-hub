@@ -174,7 +174,7 @@ export async function fetchSimulationQuestions(level: Level, group: SimSkillGrou
       .select("id, prompt, prompt_note, choices, correct_index, explanation_id, level, skill")
       .eq("is_published", true)
       .eq("level", level)
-      .in("skill", skills as unknown as string[])
+      .in("skill", skills as unknown as ("kanji"|"vocabulary"|"grammar"|"reading"|"listening")[])
       .limit(12),
   ) as Array<Record<string, unknown>>;
 
@@ -184,7 +184,7 @@ export async function fetchSimulationQuestions(level: Level, group: SimSkillGrou
         .from("questions")
         .select("id, prompt, prompt_note, choices, correct_index, explanation_id, level, skill")
         .eq("is_published", true)
-        .in("skill", skills as unknown as string[])
+        .in("skill", skills as unknown as ("kanji"|"vocabulary"|"grammar"|"reading"|"listening")[])
         .limit(12),
     ) as Array<Record<string, unknown>>;
   }
