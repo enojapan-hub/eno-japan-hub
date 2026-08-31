@@ -1,0 +1,3 @@
+ENO JAPAN V1 source/database checkpoint
+Base main commit: 66fe1516c8801db7ab6b168190fb4b69cc6905b0
+Backup marker created before functional learning fixes.
