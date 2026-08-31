@@ -1,20 +1,21 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { LevelTabs } from "@/components/learn/LevelTabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StudyFlashcard } from "@/components/learn/StudyFlashcard";
 import { fetchVocabList, markItemLearned, asExamples, type Level } from "@/lib/learn-queries";
 export const Route = createFileRoute("/_authenticated/kotoba")({ component: KotobaPage });
 function KotobaPage() {
-  const [level, setLevel] = useState<Level>("N5"); const [learned, setLearned] = useState<Record<string, boolean>>({}); const qc = useQueryClient();
+  const [level, setLevel] = useState<Level>("N5"); const [index, setIndex] = useState(0); const [learned, setLearned] = useState<Record<string, boolean>>({}); const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({ queryKey: ["vocab", level], queryFn: () => fetchVocabList(level) });
   const mutation = useMutation({ mutationFn: (id: string) => markItemLearned({ itemType: "vocabulary", itemId: id, level }), onSuccess: (_, id) => { setLearned(x => ({ ...x, [id]: true })); void qc.invalidateQueries({ queryKey: ["my-progress"] }); } });
-  return <AppShell title="言葉 Kotoba" description="Kosakata N5–N1. Daftar berganti setiap hari agar kamu tidak mengulang kartu yang sama terus." backTo="/belajar" backLabel="Belajar">
-    <LevelTabs value={level} onChange={setLevel}/>{error && <p className="mt-5 text-sm text-destructive">Gagal memuat kosakata.</p>}{isLoading && <p className="mt-5 text-sm text-muted-foreground">Memuat kosakata…</p>}
-    <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{data?.map(v => { const ex = asExamples(v.examples)[0]; return <Card key={v.id} className="transition-all hover:-translate-y-0.5 hover:shadow-md"><CardContent className="space-y-3 py-5"><div className="flex items-start justify-between gap-3"><div><div lang="ja" className="font-jp text-2xl font-semibold">{v.term}</div><div lang="ja" className="text-sm text-muted-foreground">{v.reading || "—"} {v.romaji ? `· ${v.romaji}` : ""}</div></div><Badge variant="outline">{v.part_of_speech || "—"}</Badge></div><p className="font-medium">{v.meaning_id || v.meaning_en || "Arti belum tersedia"}</p>{v.meaning_en && v.meaning_id !== v.meaning_en ? <p className="text-xs text-muted-foreground">{v.meaning_en}</p> : null}{ex?.jp ? <div className="rounded-lg bg-muted/60 p-3 text-sm" lang="ja">{ex.jp}{ex.reading ? <div className="mt-1 text-xs text-muted-foreground">{ex.reading}</div> : null}</div> : null}<Button size="sm" variant={learned[v.id] ? "secondary" : "outline"} disabled={!!learned[v.id] || mutation.isPending} onClick={() => mutation.mutate(v.id)}>{learned[v.id] ? "✓ Dipelajari" : "Tandai dipelajari"}</Button></CardContent></Card>})}</div>
-    {!isLoading && !data?.length && <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Belum ada kosakata terbit untuk {level}.</CardContent></Card>}<div className="mt-5"><Button asChild variant="outline"><Link to="/quiz">Latihan Quiz →</Link></Button></div>
+  const cards = data ?? []; const item = cards[index]; const examples = item ? asExamples(item.examples) : [];
+  return <AppShell title="言葉 · Kotoba" description="Hafalkan kosakata melalui kartu: bacaan, arti, contoh kalimat, dan konteks penggunaan." backTo="/belajar" backLabel="Belajar">
+    <LevelTabs value={level} onChange={v => { setLevel(v); setIndex(0); }} />
+    {error && <p className="mt-5 text-sm text-destructive">Gagal memuat kosakata. Coba refresh.</p>}
+    {isLoading && <p className="mt-8 text-center text-sm text-muted-foreground">Memuat kosakata…</p>}
+    {item && <div className="mt-6"><StudyFlashcard index={index} total={cards.length} level={item.level} title={item.term} reading={item.reading} meaning={item.meaning_id || item.meaning_en || "Arti belum tersedia"} secondary={item.romaji || item.part_of_speech} explanation={`Gunakan ${item.term} sesuai konteks. Perhatikan bentuk kata, tingkat kesopanan, dan kata yang biasanya muncul bersamanya.`} examples={examples} learned={!!learned[item.id]} onLearned={() => mutation.mutate(item.id)} onPrev={() => setIndex(i => Math.max(0, i - 1))} onNext={() => setIndex(i => Math.min(cards.length - 1, i + 1))} /></div>}
+    {!isLoading && !cards.length && <p className="mt-8 text-center text-sm text-muted-foreground">Belum ada kosakata terbit untuk {level}.</p>}
   </AppShell>;
 }
