@@ -16,6 +16,12 @@ export async function fetchKanjiList(level: Level) {
   return must(await supabase.from("kanji").select("id, character, level, onyomi, kunyomi, meaning_id, meaning_en, stroke_count, sort_order").eq("level", level).eq("is_published", true).order("sort_order").range(windowStart(count, 17), windowStart(count, 17) + 59));
 }
 
+export async function fetchKanjiDetail(id: string) {
+  const kanji = must(await supabase.from("kanji").select("*").eq("id", id).eq("is_published", true).limit(1));
+  const relations = must(await supabase.from("kanji_relations").select("id, note_id, sort_order, related:related_kanji_id (id, character, meaning_id, level)").eq("kanji_id", id).order("sort_order"));
+  return { kanji: kanji[0] ?? null, relations };
+}
+
 export async function fetchKanjiStudy(id: string) {
   const kanjiRows = must(await supabase.from("kanji").select("*").eq("id", id).eq("is_published", true).limit(1));
   const kanji = kanjiRows[0] ?? null;
