@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type Level = "N5" | "N4" | "N3" | "N2" | "N1";
 export const LEVELS: Level[] = ["N5", "N4", "N3", "N2", "N1"];
 export type Example = { jp?: string; id?: string; reading?: string };
+export type RelatedWord = { term: string; reading?: string | null; meaning?: string | null };
 export function asExamples(value: unknown): Example[] { return Array.isArray(value) ? value as Example[] : []; }
 function must<T>(res: { data: T | null; error: { message: string } | null }): T { if (res.error) throw new Error(res.error.message); return (res.data ?? []) as T; }
 function dayNumber() { return Math.floor(Date.now() / 86400000); }
@@ -13,7 +14,7 @@ export async function fetchKanjiList(level: Level) {
   if (countRes.error) throw new Error(countRes.error.message);
   const count = countRes.count ?? 0;
   if (!count) return [];
-  return must(await supabase.from("kanji").select("id, character, level, onyomi, kunyomi, meaning_id, meaning_en, stroke_count, sort_order").eq("level", level).eq("is_published", true).order("sort_order").range(windowStart(count, 17), windowStart(count, 17) + 59));
+  return must(await supabase.from("kanji").select("id, character, level, onyomi, kunyomi, meaning_id, stroke_count, sort_order").eq("level", level).eq("is_published", true).order("sort_order").range(windowStart(count, 17), windowStart(count, 17) + 59));
 }
 
 export async function fetchKanjiDetail(id: string) {
@@ -25,16 +26,17 @@ export async function fetchKanjiDetail(id: string) {
 export async function fetchKanjiStudy(id: string) {
   const kanjiRows = must(await supabase.from("kanji").select("*").eq("id", id).eq("is_published", true).limit(1));
   const kanji = kanjiRows[0] ?? null;
-  if (!kanji) return { kanji: null, examples: [] as Example[] };
+  if (!kanji) return { kanji: null, examples: [] as Example[], relatedWords: [] as RelatedWord[] };
   const char = String(kanji.character ?? "");
-  const vocabRows = must(await supabase.from("vocabulary").select("term, reading, meaning_id, examples").eq("is_published", true).ilike("term", `%${char}%`).limit(5));
+  const vocabRows = must(await supabase.from("vocabulary").select("term, reading, meaning_id, examples").eq("is_published", true).ilike("term", `%${char}%`).limit(8));
+  const relatedWords: RelatedWord[] = [];
   const examples: Example[] = [];
   for (const v of vocabRows as Array<Record<string, unknown>>) {
+    relatedWords.push({ term: String(v.term ?? ""), reading: v.reading ? String(v.reading) : undefined, meaning: v.meaning_id ? String(v.meaning_id) : undefined });
     const ve = asExamples(v.examples);
     if (ve.length) examples.push(...ve);
-    else if (v.term) examples.push({ jp: String(v.term), reading: v.reading ? String(v.reading) : undefined, id: v.meaning_id ? String(v.meaning_id) : undefined });
   }
-  return { kanji, examples: examples.slice(0, 5) };
+  return { kanji, examples: examples.slice(0, 5), relatedWords: relatedWords.filter(v => v.term) };
 }
 
 export async function fetchVocabList(level: Level) {
