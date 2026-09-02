@@ -31,22 +31,30 @@ function FuriganaText({ text, reading }: { text: string; reading?: string | null
   return <>{parts.map((part, i) => JP_READINGS[part] ? <ruby key={`${part}-${i}`}>{part}<rt className="font-jp text-[0.45em] font-medium leading-none text-muted-foreground">{JP_READINGS[part]}</rt></ruby> : <span key={`${part}-${i}`}>{part}</span>)}</>;
 }
 
-function FuriganaDetailText({ text }: { text: string }) { return <FuriganaText text={text} />; }
+function normalizeGrammarNotation(text: string) {
+  return text
+    .replace(/\bVerb\b/gi, "Kata Kerja")
+    .replace(/\bV\b/g, "Kata Kerja")
+    .replace(/\bN\b/g, "Kata Benda")
+    .replace(/\bO\b/g, "Objek");
+}
+
+function FuriganaDetailText({ text }: { text: string }) { return <FuriganaText text={normalizeGrammarNotation(text)} />; }
 function Japanese({ text, reading }: { text: string; reading?: string | null }) { return <span lang="ja" className="font-jp"><FuriganaText text={text} reading={reading} /></span>; }
 
 function detailFor(pattern: string, level: Level, storedStructure?: string | null): GrammarDetail {
   const p = pattern.trim();
   if (p.includes("だけ")) return {
-    structure: ["Kata benda + だけ", "Kata kerja bentuk biasa + だけ", "Kata sifat (i) + だけ", "Kata sifat (na) + な + だけ"], type: "partikel adverbal", kind: "partikel", politeness: "standar",
+    structure: ["Kata Benda + だけ", "Kata Kerja (bentuk biasa) + だけ", "Kata Sifat (i) + だけ", "Kata Sifat (na) + な + だけ"], type: "partikel adverbal", kind: "partikel", politeness: "standar",
     about: "だけ membatasi sesuatu pada jumlah, orang, benda, atau tindakan tertentu. Arti dasarnya adalah hanya atau cuma. Dalam beberapa pola, だけ dapat menekankan batas atau tingkat yang dicapai.",
     usage: "Gunakan だけ ketika ingin mengatakan bahwa sesuatu terbatas pada hal yang disebutkan. だけ biasanya ditempatkan setelah kata atau frasa yang dibatasi. Dalam kalimat seperti 私だけ, fokusnya hanya pada saya; sedangkan これだけ食べる berarti makan hanya sebanyak ini. Bedakan dengan しか yang hampir selalu membutuhkan bentuk negatif dan memberi nuansa pembatasan yang lebih kuat.",
     synonyms: ["しか〜ない — hanya, tetapi harus menggunakan bentuk negatif", "のみ — hanya; lebih formal atau tertulis"], antonyms: ["全部 — semua", "みんな — semuanya / semua orang"], related: ["しか〜ない", "のみ", "ばかり", "ほど"], levels: ["N5", "N4", "N3"],
   };
-  if (p.includes("たことがある")) return { structure: ["Kata kerja bentuk た + ことがある", "Kata kerja bentuk た + ことがない"], type: "pola tata bahasa", kind: "ungkapan pengalaman", politeness: "standar", about: "Menyatakan pengalaman pernah atau belum pernah melakukan sesuatu.", usage: "Dipakai untuk membicarakan pengalaman sampai sekarang tanpa harus menyebut waktu spesifik. Bentuk た ditempatkan sebelum ことがある.", synonyms: ["経験がある — memiliki pengalaman; lebih formal"], antonyms: ["たことがない — belum pernah"], related: ["ことがある", "ことがない"], levels: ["N5", "N4"] };
-  if (p.includes("てはいけない")) return { structure: ["Kata kerja bentuk て + はいけない", "Kata kerja bentuk て + はいけません"], type: "pola tata bahasa", kind: "ungkapan larangan", politeness: "standar; はいけません lebih sopan", about: "Menyatakan bahwa suatu tindakan tidak boleh dilakukan.", usage: "Digunakan untuk aturan, larangan, atau peringatan. Bentuk てはいけません cocok untuk situasi sopan; てはいけない lebih langsung dan netral.", synonyms: ["禁止する — melarang; digunakan sebagai verba"], antonyms: ["てもいい — boleh melakukan"], related: ["てもいい", "なければならない"], levels: ["N5", "N4"] };
-  if (p.includes("なければならない")) return { structure: ["Kata kerja bentuk ない → い diganti menjadi ければならない", "Kata kerja bentuk ない + なければならない"], type: "pola tata bahasa", kind: "ungkapan kewajiban", politeness: "standar", about: "Menyatakan kewajiban atau sesuatu yang harus dilakukan.", usage: "Dipakai ketika pembicara menyatakan keharusan berdasarkan aturan, keadaan, tanggung jawab, atau kebutuhan. Dalam percakapan, bentuk seperti なきゃ juga sering digunakan.", synonyms: ["必要がある — perlu / ada kebutuhan untuk"], antonyms: ["なくてもいい — tidak harus"], related: ["なくてもいい", "てはいけない", "べきだ"], levels: ["N4", "N3"] };
+  if (p.includes("たことがある")) return { structure: ["Kata Kerja (bentuk た) + ことがある", "Kata Kerja (bentuk た) + ことがない"], type: "pola tata bahasa", kind: "ungkapan pengalaman", politeness: "standar", about: "Menyatakan pengalaman pernah atau belum pernah melakukan sesuatu.", usage: "Dipakai untuk membicarakan pengalaman sampai sekarang tanpa harus menyebut waktu spesifik. Bentuk た ditempatkan sebelum ことがある.", synonyms: ["経験がある — memiliki pengalaman; lebih formal"], antonyms: ["たことがない — belum pernah"], related: ["ことがある", "ことがない"], levels: ["N5", "N4"] };
+  if (p.includes("てはいけない")) return { structure: ["Kata Kerja (bentuk て) + はいけない", "Kata Kerja (bentuk て) + はいけません"], type: "pola tata bahasa", kind: "ungkapan larangan", politeness: "standar; はいけません lebih sopan", about: "Menyatakan bahwa suatu tindakan tidak boleh dilakukan.", usage: "Digunakan untuk aturan, larangan, atau peringatan. Bentuk てはいけません cocok untuk situasi sopan; てはいけない lebih langsung dan netral.", synonyms: ["禁止する — melarang; digunakan sebagai kata kerja"], antonyms: ["てもいい — boleh melakukan"], related: ["てもいい", "なければならない"], levels: ["N5", "N4"] };
+  if (p.includes("なければならない")) return { structure: ["Kata Kerja (bentuk ない → い diganti menjadi ければならない)", "Kata Kerja (bentuk ない) + なければならない"], type: "pola tata bahasa", kind: "ungkapan kewajiban", politeness: "standar", about: "Menyatakan kewajiban atau sesuatu yang harus dilakukan.", usage: "Dipakai ketika pembicara menyatakan keharusan berdasarkan aturan, keadaan, tanggung jawab, atau kebutuhan. Dalam percakapan, bentuk seperti なきゃ juga sering digunakan.", synonyms: ["必要がある — perlu / ada kebutuhan untuk"], antonyms: ["なくてもいい — tidak harus"], related: ["なくてもいい", "てはいけない", "べきだ"], levels: ["N4", "N3"] };
   const rawStructure = storedStructure?.split(/\n|\\n|;/).map(x => x.trim()).filter(Boolean) ?? [];
-  return { structure: rawStructure.length ? rawStructure : ["Kata/frasa + pola tata bahasa sesuai bentuk yang ditentukan"], type: "pola tata bahasa", kind: "ungkapan tata bahasa", politeness: "standar", about: `Pola ${p} digunakan untuk menyampaikan makna yang ditentukan oleh konteks kalimat.`, usage: `Perhatikan bentuk kata yang berada sebelum ${p}, lalu gunakan pola sesuai fungsi dan konteksnya. Jangan hanya menghafalkan terjemahan; pahami hubungan pola dengan maksud kalimat.`, synonyms: [], antonyms: [], related: [], levels: [level] };
+  return { structure: rawStructure.length ? rawStructure : ["Kata atau frasa + pola tata bahasa sesuai bentuk yang ditentukan"], type: "pola tata bahasa", kind: "ungkapan tata bahasa", politeness: "standar", about: `Pola ${p} digunakan untuk menyampaikan makna yang ditentukan oleh konteks kalimat.`, usage: `Perhatikan bentuk kata yang berada sebelum ${p}, lalu gunakan pola sesuai fungsi dan konteksnya. Jangan hanya menghafalkan terjemahan; pahami hubungan pola dengan maksud kalimat.`, synonyms: [], antonyms: [], related: [], levels: [level] };
 }
 
 function BunpoPage() {
