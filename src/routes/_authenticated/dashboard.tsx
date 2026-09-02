@@ -7,10 +7,10 @@ import {
   CheckCircle2,
   Flame,
   Headphones,
-  Kanban,
   Languages,
   ListChecks,
   MessageCircle,
+  Text,
 } from "lucide-react";
 import { getMyAccount } from "@/lib/profile.functions";
 import { fetchDailyPlan } from "@/lib/daily-plan";
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 const modules = [
   { to: "/kanji", label: "Kanji", icon: Languages, tone: "text-emerald-600 bg-emerald-50" },
   { to: "/kotoba", label: "Kotoba", icon: MessageCircle, tone: "text-amber-500 bg-amber-50" },
-  { to: "/bunpo", label: "Bunpō", icon: Kanban, tone: "text-violet-600 bg-violet-50" },
+  { to: "/bunpo", label: "Bunpō", icon: Text, tone: "text-violet-600 bg-violet-50" },
   { to: "/dokkai", label: "Dokkai", icon: BookOpen, tone: "text-rose-500 bg-rose-50" },
   { to: "/listening", label: "Listening", icon: Headphones, tone: "text-sky-500 bg-sky-50" },
   { to: "/quiz", label: "Simulasi JLPT", icon: ListChecks, tone: "text-teal-600 bg-teal-50" },
@@ -121,8 +121,8 @@ function DashboardPage() {
                 <Link key={to} to={to as never}>
                   <Card className="h-full rounded-xl border-border/60 shadow-sm transition-transform active:scale-[.98] hover:-translate-y-0.5">
                     <CardContent className="flex min-h-[94px] flex-col items-center justify-center gap-2 p-2 text-center">
-                      <span className={`grid size-10 place-items-center rounded-xl text-lg font-bold ${tone}`}>
-                        <Icon className="size-5" />
+                      <span className={`grid size-10 place-items-center rounded-xl text-lg ${tone}`}>
+                        <Icon className="size-5" strokeWidth={2} />
                       </span>
                       <span className="text-[11px] font-medium leading-tight">{label}</span>
                     </CardContent>
