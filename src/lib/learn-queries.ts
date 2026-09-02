@@ -4,7 +4,21 @@ export type Level = "N5" | "N4" | "N3" | "N2" | "N1";
 export const LEVELS: Level[] = ["N5", "N4", "N3", "N2", "N1"];
 export type Example = { jp?: string; id?: string; reading?: string };
 export type RelatedWord = { term: string; reading?: string | null; meaning?: string | null };
-export function asExamples(value: unknown): Example[] { return Array.isArray(value) ? value as Example[] : []; }
+export function asExamples(value: unknown): Example[] {
+  if (!value) return [];
+  const raw = Array.isArray(value) ? value : typeof value === "string" ? (() => { try { return JSON.parse(value); } catch { return [value]; } })() : [];
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => {
+    if (typeof item === "string") return { jp: item };
+    if (!item || typeof item !== "object") return {};
+    const x = item as Record<string, unknown>;
+    return {
+      jp: String(x.jp ?? x.japanese ?? x.sentence ?? x.example ?? "") || undefined,
+      id: String(x.id ?? x.indonesian ?? x.translation ?? x.translation_id ?? "") || undefined,
+      reading: String(x.reading ?? x.hiragana ?? "") || undefined,
+    };
+  }).filter((x) => x.jp || x.id);
+}
 function must<T>(res: { data: T | null; error: { message: string } | null }): T { if (res.error) throw new Error(res.error.message); return (res.data ?? []) as T; }
 function dayNumber() { return Math.floor(Date.now() / 86400000); }
 function windowStart(count: number, step: number) { return count > 0 ? (dayNumber() * step) % count : 0; }
