@@ -1,19 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Volume2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Volume2, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { fetchVocabList, markItemLearned, asExamples, type Level } from "@/lib/learn-queries";
+import { fetchVocabList, markItemLearned, asExamples, type Level, type Example } from "@/lib/learn-queries";
 import { fetchTargetLevel } from "@/lib/target-level";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/kotoba")({ component: KotobaPage });
 
 type LocalCard = {
   id: string; term: string; reading: string; romaji: string; meaning_id: string;
-  part_of_speech: string; examples: Array<{ jp: string; id: string }>;
+  part_of_speech: string; examples: Array<{ jp: string; id: string; reading?: string }>;
   level: Level; sort_order: number;
 };
 
@@ -32,6 +33,8 @@ function KotobaPage() {
   const level: Level = targetLevel ?? "N5";
   const [index, setIndex] = useState(0);
   const [learned, setLearned] = useState<Record<string, boolean>>({});
+  const [generatedExamples, setGeneratedExamples] = useState<Record<string, Example[]>>({});
+  const [generating, setGenerating] = useState(false);
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["vocab", level], queryFn: () => fetchVocabList(level), retry: 1 });
 
@@ -44,7 +47,34 @@ function KotobaPage() {
 
   const cards: LocalCard[] = data?.length ? (data as LocalCard[]) : FALLBACK_KOTOBA;
   const item = cards[index] ?? cards[0];
-  const examples = asExamples(item.examples).filter(x => x.jp || x.id).slice(0, 3);
+  const storedExamples = asExamples(item.examples);
+  const examples = (generatedExamples[item.id] ?? storedExamples).filter(x => x.jp || x.id).slice(0, 3);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function ensureExamples() {
+      if (!item || item.id.startsWith("fallback-") || storedExamples.length >= 3 || generatedExamples[item.id]) return;
+      setGenerating(true);
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        const token = session.session?.access_token;
+        if (!token) return;
+        const response = await fetch("/api/kotoba/examples", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ id: item.id }),
+        });
+        if (!response.ok) return;
+        const result = await response.json() as { examples?: Example[] };
+        if (!cancelled && result.examples?.length) setGeneratedExamples(x => ({ ...x, [item.id]: result.examples! }));
+      } finally {
+        if (!cancelled) setGenerating(false);
+      }
+    }
+    void ensureExamples();
+    return () => { cancelled = true; };
+  }, [item?.id, storedExamples.length, generatedExamples]);
+
   const speak = (text: string) => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
@@ -55,9 +85,7 @@ function KotobaPage() {
   return (
     <AppShell title="Kotoba" description="Pelajari kosakata Jepang dengan arti, cara baca, contoh kalimat, dan penjelasan penggunaan." backTo="/belajar" backLabel="Belajar">
       <div className="mx-auto max-w-3xl space-y-4">
-        <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
-          <span>Kosakata {index + 1} dari {cards.length}</span><Badge variant="secondary">{item.level}</Badge>
-        </div>
+        <div className="flex items-center justify-between px-1 text-xs text-muted-foreground"><span>Kosakata {index + 1} dari {cards.length}</span><Badge variant="secondary">{item.level}</Badge></div>
         <div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${((index + 1) / cards.length) * 100}%` }} /></div>
 
         <Card className="overflow-hidden rounded-3xl border-border/70 shadow-sm">
@@ -74,13 +102,12 @@ function KotobaPage() {
             <div className="space-y-5 border-t bg-muted/20 p-5 sm:p-7">
               <section className="rounded-2xl border bg-background p-5"><h2 className="text-sm font-bold">Penjelasan</h2><p className="mt-3 text-sm leading-7 text-muted-foreground">{explanation}</p></section>
               <section className="rounded-2xl border bg-background p-5">
-                <h2 className="text-sm font-bold">Contoh kalimat</h2>
-                <div className="mt-4 space-y-3">{examples.map((example, i) => <div key={`${example.jp}-${i}`} className="rounded-xl border p-4"><div className="flex items-start gap-3"><div className="min-w-0 flex-1"><p lang="ja" className="font-jp text-lg leading-8">{example.jp}</p><p className="mt-2 text-sm leading-6">{example.id}</p></div>{example.jp && <Button type="button" size="icon" variant="ghost" className="shrink-0" aria-label="Dengarkan contoh" onClick={() => speak(example.jp!)}><Volume2 className="size-4" /></Button>}</div></div>)}</div>
+                <div className="flex items-center justify-between gap-3"><h2 className="text-sm font-bold">Contoh kalimat</h2>{generating && <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Sparkles className="size-3.5 animate-pulse" />Membuat contoh...</span>}</div>
+                <div className="mt-4 space-y-3">
+                  {examples.length > 0 ? examples.map((example, i) => <div key={`${example.jp}-${i}`} className="rounded-xl border p-4"><div className="flex items-start gap-3"><div className="min-w-0 flex-1"><p lang="ja" className="font-jp text-lg leading-8">{example.jp}</p>{example.reading && <p lang="ja" className="mt-1 text-xs text-muted-foreground">{example.reading}</p>}<p className="mt-2 text-sm leading-6">{example.id}</p></div>{example.jp && <Button type="button" size="icon" variant="ghost" className="shrink-0" aria-label="Dengarkan contoh" onClick={() => speak(example.jp!)}><Volume2 className="size-4" /></Button>}</div></div>) : <div className="rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground">Contoh kalimat sedang dibuat secara otomatis.</div>}
+                </div>
               </section>
-              <section className="rounded-2xl border bg-background p-5">
-                <h2 className="text-sm font-bold">Cocok digunakan dalam konteks</h2>
-                <div className="mt-3 flex flex-wrap gap-2 text-xs">{["Percakapan sehari-hari", "Pekerjaan", "Sekolah", `JLPT ${item.level}`].map(x => <span key={x} className="rounded-full bg-muted px-3 py-1.5 text-muted-foreground">{x}</span>)}</div>
-              </section>
+              <section className="rounded-2xl border bg-background p-5"><h2 className="text-sm font-bold">Cocok digunakan dalam konteks</h2><div className="mt-3 flex flex-wrap gap-2 text-xs">{["Percakapan sehari-hari", "Pekerjaan", "Sekolah", `JLPT ${item.level}`].map(x => <span key={x} className="rounded-full bg-muted px-3 py-1.5 text-muted-foreground">{x}</span>)}</div></section>
             </div>
 
             <div className="grid grid-cols-2 gap-2 border-t p-5 sm:grid-cols-3">
