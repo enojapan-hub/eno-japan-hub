@@ -26,7 +26,7 @@ export function AppShell({ title, description, backTo, backLabel = "Kembali", co
   async function handleSignOut() { await signOutCleanly(queryClient); navigate({ to: "/auth", replace: true }); }
   const isActive = (to: string) => pathname === to || pathname.startsWith(`${to}/`);
 
-  return <div className={cn("min-h-screen bg-background pb-20 text-foreground md:pb-8", focusMode && "[&_header]:opacity-40 [&_header]:hover:opacity-100")}>
+  return <div className={cn("relative min-h-screen bg-background pb-20 text-foreground md:pb-8", focusMode && "[&_header]:opacity-40 [&_header]:hover:opacity-100")}>
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/95 backdrop-blur-xl">
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
         {backTo ? <Link to={backTo} aria-label={backLabel} className="flex items-center gap-2"><ArrowLeft className="size-5" /><span className="text-[15px] font-semibold">{title}</span></Link> : <Link to="/dashboard" className="flex items-center gap-2" aria-label="enonihongo"><BrandMark /></Link>}
@@ -40,12 +40,12 @@ export function AppShell({ title, description, backTo, backLabel = "Kembali", co
       <nav aria-label="Navigasi utama" className="mx-auto hidden max-w-5xl px-4 pb-2 md:block"><ul className="flex items-center gap-1">{navItems.map(item => <li key={item.to}><Link to={item.to} aria-current={isActive(item.to) ? "page" : undefined} className={cn("flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium", isActive(item.to) ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50") }><item.icon className="size-3.5" />{item.label}</Link></li>)}</ul></nav>
     </header>
 
-    <main className={cn("mx-auto w-full max-w-5xl px-4 py-5", compact && "py-4")}>
+    <main className={cn("relative z-10 mx-auto w-full max-w-5xl px-4 py-5", compact && "py-4")}>
       {!compact && !backTo && <div className="mb-5">{description && <p className="text-[12px] leading-5 text-muted-foreground">{description}</p>}</div>}
       {!compact && backTo && description && <p className="mb-4 text-[12px] text-muted-foreground">{description}</p>}
       {children}
     </main>
 
-    <nav aria-label="Navigasi bawah" className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/96 backdrop-blur-xl md:hidden"><ul className="mx-auto flex max-w-lg items-stretch px-1">{navItems.map(item => { const active = isActive(item.to); const Icon = item.icon; return <li key={item.to} className="flex-1"><Link to={item.to} aria-current={active ? "page" : undefined} className={cn("flex min-h-14 flex-col items-center justify-center gap-1 text-[10px] font-medium", active ? "text-primary" : "text-muted-foreground")}><span className={cn("grid size-7 place-items-center rounded-lg", active && "bg-primary/10")}><Icon className="size-[17px]" /></span>{item.label}</Link></li>; })}</ul></nav>
+    <nav aria-label="Navigasi bawah" className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/96 backdrop-blur-xl"><ul className="mx-auto flex max-w-lg items-stretch px-1">{navItems.map(item => { const active = isActive(item.to); const Icon = item.icon; return <li key={item.to} className="flex-1"><Link to={item.to} aria-current={active ? "page" : undefined} className={cn("flex min-h-14 flex-col items-center justify-center gap-1 text-[10px] font-medium", active ? "text-primary" : "text-muted-foreground")}><span className={cn("grid size-7 place-items-center rounded-lg", active && "bg-primary/10")}><Icon className="size-[17px]" /></span>{item.label}</Link></li>; })}</ul></nav>
   </div>;
 }
