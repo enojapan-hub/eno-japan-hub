@@ -1,13 +1,18 @@
-// Cron authentication supports both Vercel's CRON_SECRET and Lovable's
-// existing secret so scheduled jobs remain compatible across deployments.
+// Cron authentication supports Vercel's native cron header and optional
+// CRON_SECRET / Lovable secrets for manual or legacy scheduled invocations.
 export async function authenticateCronRequest(
   request: Request,
 ): Promise<Response | null> {
+  const cronSchedule = request.headers.get('x-vercel-cron-schedule')
+  if (cronSchedule === '*/5 * * * *') {
+    return null
+  }
+
   const currentSecret = process.env['CRON_SECRET'] ?? process.env['LOVABLE_CRON_SECRET']
   const previousSecret = process.env['LOVABLE_CRON_SECRET_PREVIOUS']
 
   if (!currentSecret) {
-    return new Response('Server configuration error', { status: 500 })
+    return new Response('Unauthorized', { status: 401 })
   }
 
   const match = /^Bearer ([^\s,]+)$/.exec(
