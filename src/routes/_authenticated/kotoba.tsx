@@ -16,6 +16,13 @@ type LocalCard = { id: string; term: string; reading: string; romaji: string; me
 
 const FALLBACK_KOTOBA: LocalCard[] = [{ id: "fallback-taberu", term: "食べる", reading: "たべる", romaji: "Taberu", meaning_id: "Makan", part_of_speech: "Kata kerja", examples: [{ jp: "毎朝、ご飯を食べます。", id: "Setiap pagi, saya makan nasi." }, { jp: "一緒に昼ご飯を食べませんか。", id: "Maukah makan siang bersama?" }, { jp: "日本料理を食べてみたいです。", id: "Saya ingin mencoba makanan Jepang." }], explanation: "食べる berarti makan, yaitu memasukkan makanan ke dalam mulut dan mengonsumsinya. Kata ini digunakan untuk makanan dan minuman tertentu sesuai konteks, dan bentuknya berubah menjadi 食べます, 食べない, 食べた, atau 食べて untuk mengikuti pola kalimat." , level: "N5", sort_order: 1 }];
 
+function Furigana({ term, reading }: { term: string; reading: string }) {
+  const chars = Array.from(term);
+  const kanaOnly = chars.length > 0 && chars.every(char => /[ぁ-ゖァ-ヺー]/u.test(char));
+  if (kanaOnly) return <span>{term}</span>;
+  return <ruby>{term}<rt className="font-jp text-[0.42em] font-medium leading-none text-muted-foreground">{reading}</rt></ruby>;
+}
+
 function KotobaPage() {
   const { data: targetLevel } = useQuery({ queryKey: ["target-level"], queryFn: fetchTargetLevel, retry: 1 });
   const level: Level = targetLevel ?? "N5";
@@ -29,7 +36,7 @@ function KotobaPage() {
   useEffect(() => {
     let cancelled = false;
     async function ensureContent() {
-      if (!item || item.id.startsWith("fallback-") || (storedExamples.length >= 3 && storedExplanation)) return;
+      if (!item || item.id.startsWith("fallback-") || (storedExamples.length >= 3 && storedExplanation) || generatedExamples[item.id] || generatedExplanations[item.id]) return;
       setGenerating(true);
       try {
         const { data: session } = await supabase.auth.getSession(); const token = session.session?.access_token; if (!token) return;
@@ -47,7 +54,7 @@ function KotobaPage() {
       <div className="mx-auto max-w-3xl space-y-4">
         <div className="flex items-center justify-between px-1 text-xs text-muted-foreground"><span>Kosakata {index + 1} dari {cards.length}</span><Badge variant="secondary">{item.level}</Badge></div><div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${((index + 1) / cards.length) * 100}%` }} /></div>
         <Card className="overflow-hidden rounded-3xl border-border/70 shadow-sm"><CardContent className="p-0">
-          <div className="px-6 pb-7 pt-8 text-center sm:px-10"><div className="mb-5 flex justify-center gap-2"><Badge variant="outline">KOTOBA</Badge><Badge variant="secondary">{item.part_of_speech || "Kosakata"}</Badge></div><div lang="ja" className="font-jp text-6xl font-bold tracking-wide sm:text-7xl">{item.term}</div><div lang="ja" className="mt-2 text-xl text-muted-foreground">— {item.reading}</div><p className="mt-3 text-base italic text-muted-foreground">{item.romaji}</p><p className="mt-5 text-2xl font-bold tracking-tight">{item.meaning_id}</p><Button type="button" variant="outline" size="sm" className="mt-5 rounded-full px-5" onClick={() => speak(item.term)}><Volume2 className="mr-2 size-4" />Dengarkan</Button></div>
+          <div className="px-6 pb-7 pt-8 text-center sm:px-10"><div className="mb-5 flex justify-center gap-2"><Badge variant="outline">KOTOBA</Badge><Badge variant="secondary">{item.part_of_speech || "Kosakata"}</Badge></div><div lang="ja" className="font-jp text-6xl font-bold tracking-wide sm:text-7xl"><Furigana term={item.term} reading={item.reading} /></div><p className="mt-3 text-base italic text-muted-foreground">{item.romaji}</p><p className="mt-5 text-2xl font-bold tracking-tight">{item.meaning_id}</p><Button type="button" variant="outline" size="sm" className="mt-5 rounded-full px-5" onClick={() => speak(item.term)}><Volume2 className="mr-2 size-4" />Dengarkan</Button></div>
           <div className="space-y-5 border-t bg-muted/20 p-5 sm:p-7">
             <section className="rounded-2xl border bg-background p-5"><div className="flex items-center justify-between gap-3"><h2 className="text-sm font-bold">Penjelasan</h2>{generating && !explanation && <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Sparkles className="size-3.5 animate-pulse" />Membuat penjelasan...</span>}</div><p className="mt-3 text-sm leading-7 text-muted-foreground">{explanation || "Penjelasan sedang dibuat berdasarkan arti dan penggunaan kosakata ini."}</p></section>
             <section className="rounded-2xl border bg-background p-5"><div className="flex items-center justify-between gap-3"><h2 className="text-sm font-bold">Contoh kalimat</h2>{generating && <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Sparkles className="size-3.5 animate-pulse" />Membuat contoh...</span>}</div><div className="mt-4 space-y-3">{examples.length > 0 ? examples.map((example, i) => <div key={`${example.jp}-${i}`} className="rounded-xl border p-4"><div className="flex items-start gap-3"><div className="min-w-0 flex-1"><p lang="ja" className="font-jp text-lg leading-8">{example.jp}</p>{example.reading && <p lang="ja" className="mt-1 text-xs text-muted-foreground">{example.reading}</p>}<p className="mt-2 text-sm leading-6">{example.id}</p></div>{example.jp && <Button type="button" size="icon" variant="ghost" className="shrink-0" aria-label="Dengarkan contoh" onClick={() => speak(example.jp!)}><Volume2 className="size-4" /></Button>}</div></div>) : <div className="rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground">Contoh kalimat sedang dibuat secara otomatis.</div>}</div></section>
