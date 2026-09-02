@@ -18,10 +18,23 @@ const levelStyles: Record<Level, { icon: typeof GraduationCap; box: string; icon
   N1: { icon: GraduationCap, box: "bg-rose-50", iconColor: "text-rose-600", badge: "bg-rose-100 text-rose-700", note: "Mahir" },
 };
 
+const fallbackQuizzes = (["N5", "N4", "N3", "N2", "N1"] as Level[]).map((level) => ({
+  id: `fallback-${level}`,
+  slug: `simulasi-jlpt-${level}`,
+  title: `Simulasi JLPT ${level}`,
+  description: `Latihan simulasi JLPT ${level}`,
+  level,
+  skill: null,
+  question_count: 50,
+  time_limit_seconds: 3600,
+  sort_order: 0,
+}));
+
 function QuizPage() {
   const [level, setLevel] = useState<Level | "ALL">("ALL");
-  const { data, isLoading, error } = useQuery({ queryKey: ["quizzes"], queryFn: fetchQuizzes });
-  const quizzes = useMemo(() => (data ?? []).filter((q) => q.slug.startsWith("simulasi-jlpt-") && (level === "ALL" || q.level === level)), [data, level]);
+  const { data, isLoading, error, refetch } = useQuery({ queryKey: ["quizzes"], queryFn: fetchQuizzes, retry: 1 });
+  const source = data?.length ? data : fallbackQuizzes;
+  const quizzes = useMemo(() => source.filter((q) => q.slug.startsWith("simulasi-jlpt-") && (level === "ALL" || q.level === level)), [source, level]);
   const levels: Array<Level | "ALL"> = ["ALL", "N5", "N4", "N3", "N2", "N1"];
 
   return (
@@ -39,8 +52,8 @@ function QuizPage() {
         </div>
 
         {isLoading && <p className="py-8 text-center text-[12px] text-muted-foreground">Memuat simulasi…</p>}
-        {error && <p className="py-8 text-center text-[12px] text-destructive">Simulasi gagal dimuat. Silakan coba lagi.</p>}
-        {!isLoading && !error && quizzes.length === 0 && <Card><CardContent className="py-8 text-center text-[12px] text-muted-foreground">Belum ada simulasi untuk tingkat ini.</CardContent></Card>}
+        {error && <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-[11px] text-amber-800"><p>Data simulasi sementara menggunakan daftar tingkat JLPT.</p><button type="button" className="mt-1 font-semibold underline" onClick={() => void refetch()}>Coba muat ulang data</button></div>}
+        {!isLoading && quizzes.length === 0 && <Card><CardContent className="py-8 text-center text-[12px] text-muted-foreground">Belum ada simulasi untuk tingkat ini.</CardContent></Card>}
 
         <div className="space-y-3">
           {quizzes.map((q) => {
