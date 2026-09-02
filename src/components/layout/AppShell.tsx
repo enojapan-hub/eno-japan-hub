@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Bell, BookOpen, Brain, Home, ListChecks, LogOut, Moon, Sun, User, ArrowLeft } from "lucide-react";
+import { BarChart3, Bell, BookOpen, Brain, Home, ListChecks, LogOut, Moon, Settings, Sun, User, ArrowLeft } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { signOutCleanly } from "@/lib/auth-actions";
@@ -32,6 +32,7 @@ export function AppShell({ title, description, backTo, backLabel = "Kembali", co
         {backTo ? <Link to={backTo} aria-label={backLabel} className="flex items-center gap-2"><ArrowLeft className="size-5" /><span className="text-[15px] font-semibold">{title}</span></Link> : <Link to="/dashboard" className="flex items-center gap-2" aria-label="enonihongo"><BrandMark /></Link>}
         <div className="flex items-center gap-1">
           {!backTo && <Button variant="ghost" size="icon" className="size-9 rounded-xl" title="Notifikasi"><Bell className="size-[18px]" /></Button>}
+          {!backTo && <Link to="/pengaturan" aria-label="Pengaturan" className="grid size-9 place-items-center rounded-xl text-muted-foreground hover:bg-muted/50 hover:text-foreground"><Settings className="size-[18px]" /></Link>}
           <Button variant="ghost" size="icon" className="size-9 rounded-xl" title={focusMode ? "Keluar mode fokus" : "Mode fokus"} onClick={() => setFocusMode(v => !v)}><Brain className="size-4" /></Button>
           <Button variant="ghost" size="icon" className="size-9 rounded-xl" title={darkMode ? "Tema terang" : "Tema gelap"} onClick={toggleTheme}>{darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}</Button>
           <Button variant="ghost" size="icon" className="size-9 rounded-xl" title="Keluar" onClick={handleSignOut}><LogOut className="size-4" /></Button>
