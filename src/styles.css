@@ -4,19 +4,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * ENO JAPAN design system — dark, premium, tenang, mobile-first.
- * Semua warna memakai oklch dan hanya diakses lewat token semantik.
- */
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -25,7 +18,6 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-  --color-primary-glow: var(--primary-glow);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -38,17 +30,9 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
-  --color-surface: var(--surface);
-  --color-surface-foreground: var(--surface-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-ring-offset-background: var(--background);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -61,104 +45,93 @@
   --font-jp: "Noto Sans JP", "Noto Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
-/*
- * Aplikasi ini dark-only pada V1: :root dan .dark memakai nilai yang sama
- * agar komponen shadcn tetap konsisten tanpa flash tema.
- */
-:root,
+:root {
+  --radius: 0.8rem;
+  --background: oklch(0.985 0.004 90);
+  --foreground: oklch(0.18 0.018 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.018 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.018 260);
+  --primary: oklch(0.52 0.17 25);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.955 0.006 90);
+  --secondary-foreground: oklch(0.22 0.018 260);
+  --muted: oklch(0.955 0.006 90);
+  --muted-foreground: oklch(0.48 0.018 260);
+  --accent: oklch(0.94 0.018 25);
+  --accent-foreground: oklch(0.3 0.04 25);
+  --destructive: oklch(0.58 0.2 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.56 0.13 155);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.72 0.14 80);
+  --warning-foreground: oklch(0.22 0.03 80);
+  --border: oklch(0.88 0.008 90);
+  --input: oklch(0.9 0.008 90);
+  --ring: oklch(0.52 0.17 25);
+  --sidebar: oklch(0.99 0.003 90);
+  --sidebar-foreground: oklch(0.18 0.018 260);
+  --sidebar-primary: oklch(0.52 0.17 25);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.955 0.006 90);
+  --sidebar-accent-foreground: oklch(0.22 0.018 260);
+  --sidebar-border: oklch(0.88 0.008 90);
+  --sidebar-ring: oklch(0.52 0.17 25);
+}
+
 .dark {
-  --radius: 0.875rem;
-
-  --background: oklch(0.16 0.015 265);
-  --foreground: oklch(0.96 0.005 260);
-
-  --surface: oklch(0.21 0.018 265);
-  --surface-foreground: oklch(0.96 0.005 260);
-
-  --card: oklch(0.21 0.018 265);
-  --card-foreground: oklch(0.96 0.005 260);
-
-  --popover: oklch(0.21 0.018 265);
-  --popover-foreground: oklch(0.96 0.005 260);
-
-  --primary: oklch(0.63 0.18 18);
-  --primary-foreground: oklch(0.99 0.005 260);
-  --primary-glow: oklch(0.72 0.16 32);
-
-  --secondary: oklch(0.27 0.02 265);
-  --secondary-foreground: oklch(0.96 0.005 260);
-
-  --muted: oklch(0.26 0.018 265);
-  --muted-foreground: oklch(0.74 0.02 260);
-
-  --accent: oklch(0.68 0.12 205);
-  --accent-foreground: oklch(0.16 0.015 265);
-
-  --destructive: oklch(0.64 0.2 25);
-  --destructive-foreground: oklch(0.99 0.005 260);
-
-  --success: oklch(0.72 0.15 155);
-  --success-foreground: oklch(0.16 0.015 265);
-
-  --warning: oklch(0.8 0.15 85);
-  --warning-foreground: oklch(0.16 0.015 265);
-
+  --background: oklch(0.16 0.012 260);
+  --foreground: oklch(0.95 0.004 90);
+  --card: oklch(0.205 0.014 260);
+  --card-foreground: oklch(0.95 0.004 90);
+  --popover: oklch(0.205 0.014 260);
+  --popover-foreground: oklch(0.95 0.004 90);
+  --primary: oklch(0.66 0.17 25);
+  --primary-foreground: oklch(0.15 0.012 260);
+  --secondary: oklch(0.25 0.014 260);
+  --secondary-foreground: oklch(0.95 0.004 90);
+  --muted: oklch(0.25 0.014 260);
+  --muted-foreground: oklch(0.72 0.014 90);
+  --accent: oklch(0.3 0.035 25);
+  --accent-foreground: oklch(0.95 0.004 90);
+  --destructive: oklch(0.65 0.2 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.68 0.13 155);
+  --success-foreground: oklch(0.15 0.012 260);
+  --warning: oklch(0.78 0.14 80);
+  --warning-foreground: oklch(0.15 0.012 260);
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.63 0.18 18);
-
-  --chart-1: oklch(0.63 0.18 18);
-  --chart-2: oklch(0.68 0.12 205);
-  --chart-3: oklch(0.72 0.15 155);
-  --chart-4: oklch(0.8 0.15 85);
-  --chart-5: oklch(0.66 0.16 300);
-
-  --sidebar: oklch(0.19 0.017 265);
-  --sidebar-foreground: oklch(0.96 0.005 260);
-  --sidebar-primary: oklch(0.63 0.18 18);
-  --sidebar-primary-foreground: oklch(0.99 0.005 260);
-  --sidebar-accent: oklch(0.27 0.02 265);
-  --sidebar-accent-foreground: oklch(0.96 0.005 260);
+  --ring: oklch(0.66 0.17 25);
+  --sidebar: oklch(0.19 0.014 260);
+  --sidebar-foreground: oklch(0.95 0.004 90);
+  --sidebar-primary: oklch(0.66 0.17 25);
+  --sidebar-primary-foreground: oklch(0.15 0.012 260);
+  --sidebar-accent: oklch(0.25 0.014 260);
+  --sidebar-accent-foreground: oklch(0.95 0.004 90);
   --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.63 0.18 18);
-
-  --gradient-primary: linear-gradient(135deg, var(--primary), var(--primary-glow));
-  --shadow-elevated: 0 20px 45px -25px oklch(0 0 0 / 70%);
+  --sidebar-ring: oklch(0.66 0.17 25);
 }
 
 @layer base {
-  * {
-    border-color: var(--color-border);
-  }
-
-  html {
-    -webkit-text-size-adjust: 100%;
-  }
-
+  * { border-color: var(--color-border); }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
   body {
-    background-color: var(--color-background);
+    margin: 0;
+    background: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     font-feature-settings: "palt" 1;
     line-height: 1.6;
     text-rendering: optimizeLegibility;
   }
-
-  :lang(ja) {
-    font-family: var(--font-jp);
-  }
-
-  :focus-visible {
-    outline: 2px solid var(--color-ring);
-    outline-offset: 2px;
-  }
+  :lang(ja) { font-family: var(--font-jp); }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
 }
 
-@utility font-jp {
-  font-family: var(--font-jp);
-}
-
-/* Tampilan karakter Jepang besar saat dipelajari */
+@utility font-jp { font-family: var(--font-jp); }
 @utility jp-display {
   font-family: var(--font-jp);
   font-weight: 500;
@@ -166,13 +139,8 @@
   line-height: 1.05;
   letter-spacing: 0.02em;
 }
-
 @utility jp-lead {
   font-family: var(--font-jp);
   font-size: clamp(1.25rem, 5vw, 1.75rem);
   line-height: 1.7;
-}
-
-@utility gradient-primary {
-  background-image: var(--gradient-primary);
 }
