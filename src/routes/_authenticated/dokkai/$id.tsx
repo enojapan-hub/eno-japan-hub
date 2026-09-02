@@ -117,7 +117,7 @@ function DokkaiDetail() {
                   </div>;
                 })}
               </article>
-              {showTranslation && <div className="mt-8 rounded-xl border bg-muted/30 p-5"><div className="mb-2 text-sm font-semibold">Terjemahan</div><p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{p.translation_id || p.translation_en || "Terjemahan belum tersedia."}</p></div>}
+              {showTranslation && <div className="mt-8 rounded-xl border bg-muted/30 p-5"><div className="mb-2 text-sm font-semibold">Terjemahan</div><p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{p.translation_id || "Terjemahan belum tersedia."}</p></div>}
               {showNotes && <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-5"><div className="mb-2 text-sm font-semibold">Catatan belajar</div><ul className="space-y-2 text-sm leading-6 text-muted-foreground"><li>• Baca sekali tanpa terjemahan untuk menangkap ide utama.</li><li>• Tekan ▶ pada paragraf untuk mendengarkan pelafalan.</li><li>• Gunakan furigana hanya ketika membutuhkan bantuan kanji.</li><li>• Setelah selesai membaca, jawab pertanyaan berdasarkan isi bacaan.</li></ul></div>}
             </div>
           </CardContent>
