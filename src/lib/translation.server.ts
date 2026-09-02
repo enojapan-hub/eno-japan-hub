@@ -11,8 +11,9 @@ const SOURCE_DEFINITIONS = [
 ] as const
 
 const MAX_ATTEMPTS = 3
-const DEFAULT_LIMIT = 5
+const DEFAULT_LIMIT = 10
 const DISCOVERY_PAGE_SIZE = 50
+const MAX_BATCH_SIZE = 10
 
 function looksIndonesian(value: string | null | undefined) {
   if (!value) return false
@@ -103,8 +104,6 @@ async function discoverWork(limit: number) {
     for (const fields of definition.fields) {
       if (jobs.length >= limit) break
 
-      // Paginate through source rows so completed/Indonesian rows at the beginning
-      // cannot permanently block the rest of the dataset from being discovered.
       for (let offset = 0; jobs.length < limit; offset += DISCOVERY_PAGE_SIZE) {
         const { data, error } = await (supabaseAdmin as any)
           .from(definition.table)
@@ -118,6 +117,13 @@ async function discoverWork(limit: number) {
           const sourceText = row[fields.source]
           const currentTarget = row[fields.target]
           if (typeof sourceText !== 'string' || !sourceText.trim()) continue
+
+          // A target that already differs from the English source is treated as
+          // translated. This also catches short Indonesian words such as
+          // "saya", "sistem", and "penyebab" that the phrase heuristic cannot detect.
+          if (typeof currentTarget === 'string' && currentTarget.trim() && currentTarget.trim() !== sourceText.trim()) {
+            continue
+          }
           if (looksIndonesian(currentTarget)) continue
           if (looksJapanese(currentTarget ?? '') && currentTarget !== sourceText) continue
 
@@ -152,48 +158,56 @@ async function discoverWork(limit: number) {
   return jobs
 }
 
+async function translateOne(job: { type: string; table: string; id: string; sourceField: string; targetField: string; sourceText: string; context: string }) {
+  const { data: queueRow } = await (supabaseAdmin as any)
+    .from('content_translations')
+    .select('id,attempts')
+    .eq('source_type', job.type)
+    .eq('source_id', job.id)
+    .eq('source_field', job.sourceField)
+    .eq('language', 'id')
+    .maybeSingle()
+  if (!queueRow) return { ...job, status: 'skipped' }
+
+  const nextAttempts = (queueRow.attempts ?? 0) + 1
+  await (supabaseAdmin as any).from('content_translations').update({ status: 'processing', attempts: nextAttempts, last_error: null }).eq('id', queueRow.id)
+
+  try {
+    const translated = await translateNaturalIndonesian(job.sourceText, job.context)
+    const { error: updateError } = await (supabaseAdmin as any)
+      .from(job.table)
+      .update({ [job.targetField]: translated.translation })
+      .eq('id', job.id)
+    if (updateError) throw updateError
+
+    await (supabaseAdmin as any).from('content_translations').update({
+      translated_text: translated.translation,
+      status: 'completed',
+      model: translated.model,
+      translated_at: new Date().toISOString(),
+      last_error: null,
+    }).eq('id', queueRow.id)
+    return { ...job, status: 'completed' }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    await (supabaseAdmin as any).from('content_translations').update({
+      status: nextAttempts >= MAX_ATTEMPTS ? 'failed' : 'pending',
+      last_error: message.slice(0, 1000),
+    }).eq('id', queueRow.id)
+    return { ...job, status: 'failed', error: message }
+  }
+}
+
 export async function runTranslationBatch(limit = DEFAULT_LIMIT) {
-  const jobs = await discoverWork(Math.min(Math.max(limit, 1), 10))
+  const jobs = await discoverWork(Math.min(Math.max(limit, 1), MAX_BATCH_SIZE))
   const results = []
 
-  for (const job of jobs) {
-    const { data: queueRow } = await (supabaseAdmin as any)
-      .from('content_translations')
-      .select('id,attempts')
-      .eq('source_type', job.type)
-      .eq('source_id', job.id)
-      .eq('source_field', job.sourceField)
-      .eq('language', 'id')
-      .maybeSingle()
-    if (!queueRow) continue
-
-    const nextAttempts = (queueRow.attempts ?? 0) + 1
-    await (supabaseAdmin as any).from('content_translations').update({ status: 'processing', attempts: nextAttempts, last_error: null }).eq('id', queueRow.id)
-
-    try {
-      const translated = await translateNaturalIndonesian(job.sourceText, job.context)
-      const { error: updateError } = await (supabaseAdmin as any)
-        .from(job.table)
-        .update({ [job.targetField]: translated.translation })
-        .eq('id', job.id)
-      if (updateError) throw updateError
-
-      await (supabaseAdmin as any).from('content_translations').update({
-        translated_text: translated.translation,
-        status: 'completed',
-        model: translated.model,
-        translated_at: new Date().toISOString(),
-        last_error: null,
-      }).eq('id', queueRow.id)
-      results.push({ ...job, status: 'completed' })
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      await (supabaseAdmin as any).from('content_translations').update({
-        status: nextAttempts >= MAX_ATTEMPTS ? 'failed' : 'pending',
-        last_error: message.slice(0, 1000),
-      }).eq('id', queueRow.id)
-      results.push({ ...job, status: 'failed', error: message })
-    }
+  // Run a small bounded set concurrently so the scheduled job can make useful
+  // progress without serially waiting on every OpenAI request.
+  for (let index = 0; index < jobs.length; index += MAX_BATCH_SIZE) {
+    const chunk = jobs.slice(index, index + MAX_BATCH_SIZE)
+    const chunkResults = await Promise.all(chunk.map(translateOne))
+    results.push(...chunkResults)
   }
 
   return { stats: await getTranslationStats(), results }
