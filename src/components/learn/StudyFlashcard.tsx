@@ -36,15 +36,16 @@ export function StudyFlashcard({index,total,level,title,reading,romaji,meaning,s
      {!!relatedWords?.length&&<section className="rounded-2xl border bg-muted/30 p-5"><p className={sectionTitle}>KOSAKATA TERKAIT</p><div className="mt-4 grid gap-3 sm:grid-cols-2">{relatedWords.slice(0,10).map((w,i)=><div key={`${w.term}-${i}`} className="rounded-xl border bg-background p-4"><p lang="ja" className="font-jp text-xl">{w.term}</p>{furiganaEnabled&&w.reading&&<p lang="ja" className="mt-1 text-sm text-muted-foreground">{w.reading}</p>}<p className="mt-2 text-sm leading-6">{w.meaning||"Arti belum tersedia"}</p>{w.example&&<p lang="ja" className="mt-2 border-t pt-2 font-jp text-sm leading-6">{w.example}</p>}</div>)}</div></section>}
      {question&&<section className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-5"><p className="text-xs font-bold tracking-wide text-primary">LATIHAN PEMAHAMAN</p><p className="mt-3 font-medium leading-7">{question.prompt}</p><div className="mt-4 grid gap-3">{question.choices.map((choice,i)=><Button key={`${choice}-${i}`} type="button" variant={selected===i?(i===question.correctIndex?"secondary":"destructive"):"outline"} className="h-auto min-h-12 justify-start whitespace-normal py-3 text-left" onClick={()=>setSelected(i)}>{String.fromCharCode(65+i)}. {choice}</Button>)}</div>{selected!==null&&<div className="mt-4 rounded-xl border bg-background p-4 text-sm leading-6"><p className="font-semibold flex items-center gap-2">{selected===question.correctIndex?<><Check className="size-4" strokeWidth={2}/><span>Jawaban benar</span></>:<><X className="size-4" strokeWidth={2}/><span>Jawaban belum tepat</span></>}</p>{selected!==question.correctIndex&&<p className="mt-1">Jawaban yang benar: {String.fromCharCode(65+question.correctIndex)}.</p>}{question.explanation&&<p className="mt-2">{question.explanation}</p>}</div>}</section>}
     </div>}
+    {onLearned&&<div className="mt-1">
+      <Button type="button" variant={learned?"secondary":"outline"} onClick={onLearned} disabled={!!learned} className="h-11 w-full rounded-xl font-semibold" aria-label={learned?"Sudah dipelajari":"Tandai sudah dipelajari"}>
+        {learned?<><Check className="mr-2 size-4" strokeWidth={2.25}/><span>Sudah dipelajari</span></>:<span>Tandai sudah dipelajari</span>}
+      </Button>
+    </div>}
     <div className="rounded-2xl border bg-muted/30 p-2 sm:p-2.5">
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Button type="button" variant="ghost" onClick={onPrev} disabled={index===0} className="h-12 rounded-xl px-3 font-semibold sm:px-5">
           <ArrowLeft className="mr-2 size-4" strokeWidth={2.25}/><span>Sebelumnya</span>
         </Button>
-        {onLearned&&<Button type="button" variant={learned?"secondary":"outline"} onClick={onLearned} className="h-12 min-w-12 rounded-xl px-3 font-semibold" aria-label={learned?"Sudah dipelajari":"Tandai sudah dipelajari"}>
-          {learned?<Check className="size-5" strokeWidth={2.25}/>:<span className="text-xs sm:text-sm">Pelajari</span>}
-        </Button>}
-        {!onLearned&&<span />}
         <Button type="button" onClick={onNext} disabled={index===total-1} className="h-12 rounded-xl px-3 font-semibold shadow-sm sm:px-5">
           <span>Berikutnya</span><ArrowRight className="ml-2 size-4" strokeWidth={2.25}/>
         </Button>
