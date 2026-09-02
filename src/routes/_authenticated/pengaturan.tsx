@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bell, BookOpen, ChevronRight, ExternalLink, LogOut, Moon, RefreshCw, Shield, Smartphone, Star, Sun, UserRound, Users } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { Bell, BookOpen, ChevronRight, ExternalLink, Moon, RefreshCw, Shield, Smartphone, Star, Sun, UserRound, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/pengaturan")({
   head: () => ({ meta: [{ title: "Pengaturan — enonihongo" }, { name: "description", content: "Atur pengalaman belajar dan akun enonihongo." }] }),
@@ -28,7 +27,7 @@ function SettingsPage() {
   const toggleNotifications = (value: boolean) => { setNotifications(value); localStorage.setItem("enonihongo-notifications", value ? "on" : "off"); toast.success(value ? "Notifikasi diaktifkan." : "Notifikasi dimatikan."); };
   const toggleDark = (value: boolean) => { setDark(value); document.documentElement.classList.toggle("dark", value); localStorage.setItem("enonihongo-theme", value ? "dark" : "light"); };
   const refresh = async () => { await qc.invalidateQueries(); toast.success("Data berhasil disegarkan."); };
-  const follow = () => { window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer"); };
+  const follow = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
 
   return <AppShell title="Pengaturan" backTo="/profil" description="Atur pengalaman belajar, akun, dan aplikasi.">
     <div className="space-y-4">
@@ -46,7 +45,11 @@ function SettingsPage() {
         <SettingsRow icon={Users} title="Masukan" description="Kirim saran atau laporkan masalah." onClick={() => window.location.href = "mailto:support@enonihongo.com?subject=Masukan%20enonihongo"} />
         <SettingsRow icon={Shield} title="Ketentuan penggunaan dan kebijakan privasi" description="Baca ketentuan dan kebijakan privasi." onClick={() => toast.info("Dokumen kebijakan akan tersedia di halaman resmi enonihongo.")} />
         <SettingsRow icon={UserRound} title="Hubungi layanan pelanggan" description="Kami siap membantu." onClick={() => window.location.href = "mailto:support@enonihongo.com"} />
-        <SettingsRow icon={ExternalLink} title="Ikuti akun kami" description="Ikuti enonihongo untuk kabar terbaru." onClick={follow} />
+        <SettingsRow icon={ExternalLink} title="Ikuti akun kami" description="Instagram @enottf • TikTok @enottff" onClick={() => follow("https://www.instagram.com/enottf/")} />
+        <div className="ml-12 flex gap-2 pb-2">
+          <button type="button" onClick={() => follow("https://www.instagram.com/enottf/")} className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-muted">Instagram · @enottf</button>
+          <button type="button" onClick={() => follow("https://www.tiktok.com/@enottff")} className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-muted">TikTok · @enottff</button>
+        </div>
       </CardContent></Card>
 
       <Card className="rounded-2xl border-border/70 shadow-sm"><CardContent className="flex items-center justify-between p-4"><div><p className="text-sm font-medium">Versi aplikasi</p><p className="text-[11px] text-muted-foreground">enonihongo</p></div><span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold">V1.0.0</span></CardContent></Card>
