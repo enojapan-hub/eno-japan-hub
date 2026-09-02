@@ -1,11 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "tanstack-start",
+  "git": {
+    "deploymentEnabled": true
+  },
   "crons": [
     {
       "path": "/api/cron/translation",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
-
