@@ -10,6 +10,11 @@ import { Button } from "@/components/ui/button";
 import { getMyAccount } from "@/lib/profile.functions";
 import { supabase } from "@/lib/supabase/client";
 
+type RpcResult = { data: number | null; error: { message: string } | null };
+function callRpc(fn: string, args: Record<string, unknown>): Promise<RpcResult> {
+  return (supabase.rpc as unknown as (name: string, params: Record<string, unknown>) => Promise<RpcResult>)(fn, args);
+}
+
 export const Route = createFileRoute("/_authenticated/referral")({
   head: () => ({ meta: [{ title: "Gratis & Referral — ENO JAPAN" }] }),
   component: ReferralPage,
@@ -36,7 +41,7 @@ function ReferralPage() {
 
   async function redeem() {
     setMessage("");
-    const { data: days, error } = await supabase.rpc("redeem_referral_points", { p_points: 1000 });
+    const { data: days, error } = await callRpc("redeem_referral_points", { p_points: 1000 });
     if (error) setMessage(error.message);
     else if (!days) setMessage("Poin belum cukup. Kumpulkan 1.000 poin terlebih dahulu.");
     else { setMessage(`Berhasil! Premium +${days} hari.`); await refetch(); }
@@ -44,7 +49,7 @@ function ReferralPage() {
 
   async function claimReferral() {
     setMessage("");
-    const { data: awarded, error } = await supabase.rpc("award_referral_signup", { p_code: code });
+    const { data: awarded, error } = await callRpc("award_referral_signup", { p_code: code });
     if (error) setMessage(error.message);
     else if (!awarded) setMessage("Kode referral tidak valid atau sudah digunakan.");
     else { setMessage(`Referral berhasil. Poin yang diberikan: +${awarded}.`); setCode(""); await refetch(); }
