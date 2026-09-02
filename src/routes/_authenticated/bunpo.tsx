@@ -33,8 +33,10 @@ function BunpoPage() {
   const cards = data ?? [];
   const item = cards[index];
   const examples = item ? asExamples(item.examples) : [];
-  const meaning = item?.meaning_id || "Arti belum tersedia.";
-  const explanation = item?.explanation_id || "Penjelasan belum tersedia. Gunakan contoh kalimat untuk memahami konteksnya.";
+  const meaningSource = typeof item?.meaning_id === "string" ? item.meaning_id.trim() : "";
+  const englishSource = typeof item?.meaning_en === "string" ? item.meaning_en.trim() : "";
+  const meaning = meaningSource && meaningSource.toLowerCase() !== englishSource.toLowerCase() ? meaningSource : "Terjemahan Indonesia sedang diproses…";
+  const explanation = item?.explanation_id || "Penjelasan Indonesia sedang diproses…";
   const guide = item ? guideFor(item.pattern) : null;
   const mistake = item ? mistakeFor(item.pattern) : null;
 
@@ -45,11 +47,7 @@ function BunpoPage() {
       {isLoading && <p className="mt-8 text-center text-sm text-muted-foreground">Memuat materi…</p>}
       {item && <div className="mt-6 space-y-5">
         <StudyFlashcard index={index} total={cards.length} level={item.level} title={item.pattern} meaning={meaning} structure={item.structure} explanation={explanation} examples={examples} learned={!!learned[item.id]} onLearned={() => mutation.mutate(item.id)} onPrev={() => setIndex(i => Math.max(0, i - 1))} onNext={() => setIndex(i => Math.min(cards.length - 1, i + 1))} />
-        {guide && <section className="mx-auto max-w-2xl space-y-4 rounded-2xl border bg-background p-5">
-          <div><p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground">FUNGSI</p><p className="mt-2 leading-7">{guide.fungsi}</p></div>
-          <div><p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground">CARA PENGGUNAAN</p><ol className="mt-2 list-decimal space-y-2 pl-5 leading-7">{guide.penggunaan.map((x, i) => <li key={i}>{x}</li>)}</ol></div>
-          <div><p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground">CARA MENGGUNAKAN DENGAN EFISIEN</p><p className="mt-2 leading-7">{guide.efisien}</p></div>
-        </section>}
+        {guide && <section className="mx-auto max-w-2xl space-y-4 rounded-2xl border bg-background p-5"><div><p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground">FUNGSI</p><p className="mt-2 leading-7">{guide.fungsi}</p></div><div><p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground">CARA PENGGUNAAN</p><ol className="mt-2 list-decimal space-y-2 pl-5 leading-7">{guide.penggunaan.map((x, i) => <li key={i}>{x}</li>)}</ol></div><div><p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground">CARA MENGGUNAKAN DENGAN EFISIEN</p><p className="mt-2 leading-7">{guide.efisien}</p></div></section>}
         {mistake && <section className="mx-auto max-w-2xl space-y-3 rounded-2xl border bg-background p-5"><p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground">KESALAHAN UMUM</p>{mistake.wrong && <><div className="rounded-xl bg-destructive/5 p-4"><p className="text-sm font-semibold text-destructive">✗ {mistake.wrong}</p></div><div className="rounded-xl bg-emerald-500/5 p-4"><p className="text-sm font-semibold">✓ {mistake.right}</p></div></>}<p className="text-sm leading-6 text-muted-foreground">{mistake.note}</p></section>}
       </div>}
       {!isLoading && !cards.length && <p className="mt-8 text-center text-sm text-muted-foreground">Belum ada pola tata bahasa untuk {level}.</p>}
