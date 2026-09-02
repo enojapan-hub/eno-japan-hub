@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { BarChart3, Flame, Trophy } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,23 +14,16 @@ function ProgressPage() {
   const attempts = data?.attempts ?? [];
   const stats = data?.stats;
   const weak = data?.weak ?? [];
-  const byType = (type: string) => learned.filter((x) => x.item_type === type).length;
-
-  return <AppShell title="Progress" description="Pantau perkembangan belajar dan hasil latihanmu." backTo="/dashboard" backLabel="Beranda">
+  const byType = (type: string) => learned.filter(x => x.item_type === type).length;
+  return <AppShell title="Progress" description="Lihat hasil nyata dari belajar dan latihanmu." backTo="/dashboard" backLabel="Beranda">
     {isLoading && <p className="text-sm text-muted-foreground">Memuat progress…</p>}
-    {error && <p className="text-sm text-destructive">Gagal memuat progress.</p>}
+    {error && <Card className="shadow-none"><CardContent className="py-6 text-sm text-destructive">Gagal memuat progress. Coba lagi.</CardContent></Card>}
     {!isLoading && !error && <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-4">
-        <Card><CardHeader><CardTitle className="text-sm">XP</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{stats?.total_xp ?? 0}</CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-sm">Streak</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{stats?.current_streak ?? 0} hari</CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-sm">Kanji</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{byType("kanji")}</CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-sm">Kotoba</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{byType("vocabulary")}</CardContent></Card>
-      </div>
-      <Card><CardHeader><CardTitle>Riwayat Quiz</CardTitle></CardHeader><CardContent className="space-y-3">
-        {attempts.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada hasil quiz.</p> : attempts.map((a) => <div key={a.id} className="flex items-center justify-between gap-3 rounded-lg border p-3"><div><div className="font-medium">{a.level ?? "—"} · {a.skill ?? "Quiz"}</div><div className="text-xs text-muted-foreground">{a.correct_count}/{a.total_questions} benar</div></div><Badge>{a.score}%</Badge></div>)}
-      </CardContent></Card>
-      <Card><CardHeader><CardTitle>Materi yang sudah dipelajari</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3"><div className="rounded-lg border p-3">Kanji: <b>{byType("kanji")}</b></div><div className="rounded-lg border p-3">Kotoba: <b>{byType("vocabulary")}</b></div><div className="rounded-lg border p-3">Bunpō: <b>{byType("grammar")}</b></div></CardContent></Card>
-      <Card><CardHeader><CardTitle>Yang perlu diulang</CardTitle></CardHeader><CardContent>{weak.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada soal lemah. Terus latihan.</p> : <div className="space-y-2">{weak.slice(0, 8).map((w, i) => <div key={`${i}-${w.question?.prompt}`} className="rounded-lg border p-3 text-sm"><Badge variant="outline" className="mr-2">{w.question?.skill ?? "quiz"}</Badge>{w.question?.prompt}</div>)}</div>}</CardContent></Card>
+      <div className="grid gap-3 sm:grid-cols-3"><Metric icon={Trophy} label="XP" value={String(stats?.total_xp ?? 0)} /><Metric icon={Flame} label="Streak" value={`${stats?.current_streak ?? 0} hari`} /><Metric icon={BarChart3} label="Quiz" value={String(attempts.length)} /></div>
+      <Card className="shadow-none"><CardHeader><CardTitle>Materi yang sudah dipelajari</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3"><div className="rounded-xl bg-muted/50 p-4"><p className="text-xs text-muted-foreground">Kanji</p><p className="mt-1 text-2xl font-semibold">{byType("kanji")}</p></div><div className="rounded-xl bg-muted/50 p-4"><p className="text-xs text-muted-foreground">Kotoba</p><p className="mt-1 text-2xl font-semibold">{byType("vocabulary")}</p></div><div className="rounded-xl bg-muted/50 p-4"><p className="text-xs text-muted-foreground">Bunpō</p><p className="mt-1 text-2xl font-semibold">{byType("grammar")}</p></div></CardContent></Card>
+      <Card className="shadow-none"><CardHeader><CardTitle>Riwayat Quiz</CardTitle></CardHeader><CardContent className="space-y-2">{attempts.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada hasil quiz.</p> : attempts.map(a => <div key={a.id} className="flex items-center justify-between gap-3 rounded-xl border p-3"><div><p className="font-medium">{a.level ?? "—"} · {a.skill ?? "Quiz"}</p><p className="text-xs text-muted-foreground">{a.correct_count}/{a.total_questions} benar</p></div><Badge>{a.score}%</Badge></div>)}</CardContent></Card>
+      <Card className="shadow-none"><CardHeader><CardTitle>Perlu diulang</CardTitle></CardHeader><CardContent>{weak.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada soal yang tercatat salah.</p> : <div className="space-y-2">{weak.slice(0, 8).map((w, i) => <div key={`${i}-${w.question?.prompt}`} className="rounded-xl border p-3 text-sm"><Badge variant="outline" className="mr-2">{w.question?.skill ?? "quiz"}</Badge>{w.question?.prompt}</div>)}</div>}</CardContent></Card>
     </div>}
   </AppShell>;
 }
+function Metric({ icon: Icon, label, value }: { icon: typeof Trophy; label: string; value: string }) { return <Card className="shadow-none"><CardContent className="flex items-center gap-3 p-5"><div className="rounded-xl bg-primary/10 p-2 text-primary"><Icon className="size-5" /></div><div><p className="text-xs text-muted-foreground">{label}</p><p className="text-xl font-semibold">{value}</p></div></CardContent></Card>; }
