@@ -17,6 +17,8 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+const PRODUCTION_ORIGIN = "https://eno-japan-hub.vercel.app";
+
 function AuthPage() {
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
@@ -24,16 +26,24 @@ function AuthPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
     supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
       if (data.session) navigate({ to: "/dashboard", replace: true });
       else setChecking(false);
     });
+    return () => { active = false; };
   }, [navigate]);
 
   async function signInWithGoogle() {
     setError(null); setLoading(true);
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/dashboard` } });
+      // OAuth selalu kembali ke domain production ENO JAPAN, bukan localhost.
+      const redirectTo = `${PRODUCTION_ORIGIN}/dashboard`;
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo },
+      });
       if (oauthError) throw oauthError;
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Gagal masuk dengan Google.";
