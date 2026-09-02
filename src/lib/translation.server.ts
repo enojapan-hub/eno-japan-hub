@@ -12,6 +12,7 @@ const SOURCE_DEFINITIONS = [
 
 const MAX_ATTEMPTS = 3
 const DEFAULT_LIMIT = 5
+const DISCOVERY_PAGE_SIZE = 50
 
 function looksIndonesian(value: string | null | undefined) {
   if (!value) return false
@@ -98,45 +99,53 @@ async function discoverWork(limit: number) {
 
   for (const definition of SOURCE_DEFINITIONS) {
     if (jobs.length >= limit) break
+
     for (const fields of definition.fields) {
       if (jobs.length >= limit) break
-      const { data, error } = await (supabaseAdmin as any)
-        .from(definition.table)
-        .select(`id,${fields.source},${fields.target}`)
-        .not(fields.source, 'is', null)
-        .limit(limit)
-      if (error || !data) continue
 
-      for (const row of data) {
-        if (jobs.length >= limit) break
-        const sourceText = row[fields.source]
-        const currentTarget = row[fields.target]
-        if (typeof sourceText !== 'string' || !sourceText.trim()) continue
-        if (looksIndonesian(currentTarget)) continue
-        if (looksJapanese(currentTarget ?? '') && currentTarget !== sourceText) continue
+      // Paginate through source rows so completed/Indonesian rows at the beginning
+      // cannot permanently block the rest of the dataset from being discovered.
+      for (let offset = 0; jobs.length < limit; offset += DISCOVERY_PAGE_SIZE) {
+        const { data, error } = await (supabaseAdmin as any)
+          .from(definition.table)
+          .select(`id,${fields.source},${fields.target}`)
+          .not(fields.source, 'is', null)
+          .range(offset, offset + DISCOVERY_PAGE_SIZE - 1)
+        if (error || !data?.length) break
 
-        const { data: existing } = await (supabaseAdmin as any)
-          .from('content_translations')
-          .select('id,status,attempts,source_text')
-          .eq('source_type', definition.type)
-          .eq('source_id', row.id)
-          .eq('source_field', fields.source)
-          .eq('language', 'id')
-          .maybeSingle()
+        for (const row of data) {
+          if (jobs.length >= limit) break
+          const sourceText = row[fields.source]
+          const currentTarget = row[fields.target]
+          if (typeof sourceText !== 'string' || !sourceText.trim()) continue
+          if (looksIndonesian(currentTarget)) continue
+          if (looksJapanese(currentTarget ?? '') && currentTarget !== sourceText) continue
 
-        if (existing?.status === 'completed' && existing.source_text === sourceText) continue
-        if (existing?.attempts >= MAX_ATTEMPTS && existing?.status === 'failed') continue
+          const { data: existing } = await (supabaseAdmin as any)
+            .from('content_translations')
+            .select('id,status,attempts,source_text')
+            .eq('source_type', definition.type)
+            .eq('source_id', row.id)
+            .eq('source_field', fields.source)
+            .eq('language', 'id')
+            .maybeSingle()
 
-        await (supabaseAdmin as any).from('content_translations').upsert({
-          id: existing?.id,
-          source_type: definition.type,
-          source_id: row.id,
-          source_field: fields.source,
-          source_text: sourceText,
-          status: 'pending',
-        }, { onConflict: 'source_type,source_id,source_field,language' })
+          if (existing?.status === 'completed' && existing.source_text === sourceText) continue
+          if (existing?.attempts >= MAX_ATTEMPTS && existing?.status === 'failed') continue
 
-        jobs.push({ type: definition.type, table: definition.table, id: row.id, sourceField: fields.source, targetField: fields.target, sourceText, context: definition.type })
+          await (supabaseAdmin as any).from('content_translations').upsert({
+            id: existing?.id,
+            source_type: definition.type,
+            source_id: row.id,
+            source_field: fields.source,
+            source_text: sourceText,
+            status: 'pending',
+          }, { onConflict: 'source_type,source_id,source_field,language' })
+
+          jobs.push({ type: definition.type, table: definition.table, id: row.id, sourceField: fields.source, targetField: fields.target, sourceText, context: definition.type })
+        }
+
+        if (data.length < DISCOVERY_PAGE_SIZE) break
       }
     }
   }
