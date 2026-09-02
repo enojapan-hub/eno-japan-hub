@@ -51,7 +51,7 @@ export async function fetchGrammarList(level: Level) {
   if (countRes.error) throw new Error(countRes.error.message);
   const count = countRes.count ?? 0;
   if (!count) return [];
-  return must(await supabase.from("grammar_points").select("id, pattern, meaning_id, meaning_en, structure, explanation_id, explanation_en, examples, level, sort_order").eq("level", level).eq("is_published", true).order("sort_order").range(windowStart(count, 13), windowStart(count, 13) + 39));
+  return must(await supabase.from("grammar_points").select("id, pattern, meaning_id, meaning_en, structure, explanation_id, examples, level, sort_order").eq("level", level).eq("is_published", true).order("sort_order").range(windowStart(count, 13), windowStart(count, 13) + 39));
 }
 export async function fetchPassages() { return must(await supabase.from("reading_passages").select("id, title, level, body_jp, translation_id, estimated_minutes, sort_order").eq("is_published", true).order("sort_order")); }
 export async function fetchPassageDetail(id: string) { const passages = must(await supabase.from("reading_passages").select("*").eq("id", id).limit(1)); const questions = must(await supabase.from("questions").select("id, prompt, prompt_note, choices, correct_index, explanation_id").eq("passage_id", id).eq("is_published", true)); return { passage: passages[0] ?? null, questions }; }
