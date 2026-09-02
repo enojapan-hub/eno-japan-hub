@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowRight, BookOpen, CheckCircle2, Flame, Headphones, Languages, ListChecks, MessageCircle, Text } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, Flame, Headphones, Languages, ListChecks, MessageCircle, Newspaper, Text } from "lucide-react";
 import { getMyAccount } from "@/lib/profile.functions";
 import { fetchDailyPlan } from "@/lib/daily-plan";
 import { AppShell } from "@/components/layout/AppShell";
@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LEVELS, type Level } from "@/lib/learn-queries";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Beranda — enonihongo" }, { name: "description", content: "Ringkasan belajar bahasa Jepang dan target harian." }] }),
+  head: () => ({ meta: [{ title: "Beranda — enonihongo" }, { name: "description", content: "Ringkasan belajar bahasa Jepang dan berita terbaru Jepang." }] }),
   component: DashboardPage,
 });
 
@@ -23,6 +23,12 @@ const modules = [
   { to: "/listening", label: "Mendengarkan", icon: Headphones, tone: "text-sky-500 bg-sky-50" },
   { to: "/quiz", label: "Simulasi JLPT", icon: ListChecks, tone: "text-teal-600 bg-teal-50" },
 ] as const;
+
+const japanNews = [
+  { title: "Berita Jepang terbaru", summary: "Ikuti kabar dan informasi terbaru seputar Jepang.", url: "https://www3.nhk.or.jp/nhkworld/id/news/" },
+  { title: "NHK WORLD-JAPAN", summary: "Berita Jepang dan informasi terkini dalam berbagai bahasa.", url: "https://www3.nhk.or.jp/nhkworld/" },
+  { title: "Informasi Jepang", summary: "Temukan berita, budaya, perjalanan, dan kehidupan di Jepang.", url: "https://www.japan.go.jp/" },
+];
 
 function DashboardPage() {
   const fetchAccount = useServerFn(getMyAccount);
@@ -39,6 +45,7 @@ function DashboardPage() {
       <Card className="rounded-2xl border-border/70 bg-card shadow-sm"><CardContent className="p-4"><div className="flex items-center justify-between"><h2 className="flex items-center gap-1 text-[13px] font-semibold">📈 Ringkasan Belajar</h2><div className="flex items-center gap-1.5 rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-orange-500"><Flame className="size-3.5" /> Belajar hari ini</div></div><div className="my-4 grid grid-cols-3 gap-2 text-center"><div><p className="text-[10px] text-muted-foreground">Level</p><span className="mt-1 inline-block rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">{level}</span></div><div><p className="text-[10px] text-muted-foreground">XP</p><p className="mt-1 text-lg font-bold">—</p></div><div><p className="text-[10px] text-muted-foreground">Target</p><p className="mt-1 text-lg font-bold">{completed}/{target}</p></div></div><div className="h-2 w-full overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${percent}%` }} /></div><p className="mt-1 text-right text-[10px] text-muted-foreground">{Math.max(0, target - completed)} tugas lagi hari ini</p></CardContent></Card>
       <section><div className="mb-2 flex items-center justify-between px-1"><h2 className="text-[14px] font-semibold">Belajar</h2><Link to="/belajar" className="text-[11px] font-semibold text-primary">Lihat semua</Link></div><div className="grid grid-cols-3 gap-2.5">{modules.map(({ to, label, icon: Icon, tone }) => <Link key={to} to={to} aria-label={label} className="group block min-w-0 touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"><Card className="h-full min-h-[94px] overflow-hidden rounded-xl border-border/60 shadow-sm transition-transform group-hover:-translate-y-0.5 group-active:scale-[.98]"><CardContent className="flex min-h-[94px] flex-col items-center justify-center gap-2 p-2 text-center"><span className={`grid size-10 place-items-center rounded-xl text-lg ${tone}`}><Icon className="size-5" strokeWidth={2} /></span><span className="text-[11px] font-medium leading-tight">{label}</span></CardContent></Card></Link>)}</div></section>
       <Card className="rounded-2xl border-border/70 shadow-sm"><CardContent className="p-4"><div className="flex items-center justify-between"><div><h2 className="text-[13px] font-semibold">Target Harian</h2><p className="mt-0.5 text-[11px] text-muted-foreground">{completed} / {target} selesai</p></div><Link to="/belajar" className="text-[11px] font-semibold text-primary">Lihat semua</Link></div><div className="mt-3 space-y-2">{daily.isLoading ? <Skeleton className="h-12 w-full rounded-xl" /> : daily.data?.items.slice(0, 3).map(item => <Link key={`${item.type}:${item.id}`} to={(item.type === "kanji" ? "/kanji/$id" : item.type === "vocabulary" ? "/kotoba/$id" : "/bunpo/$id") as "/kanji/$id" | "/kotoba/$id" | "/bunpo/$id"} params={{ id: item.id }} className="flex items-center gap-3 rounded-xl border border-border/50 p-2.5 hover:bg-muted/40"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><CheckCircle2 className="size-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-[12px] font-medium">{item.label}</span><span className="block truncate text-[10px] text-muted-foreground">{item.meaning}</span></span><ArrowRight className="size-3.5 text-muted-foreground" /></Link>)}</div></CardContent></Card>
+      <section><div className="mb-2 flex items-center gap-2 px-1"><Newspaper className="size-4 text-primary" /><h2 className="text-[14px] font-semibold">Berita Jepang</h2></div><div className="space-y-2">{japanNews.map((news) => <a key={news.url} href={news.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card p-3 shadow-sm transition hover:bg-muted/30"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-rose-50 text-rose-500"><Newspaper className="size-4" /></span><span className="min-w-0 flex-1"><span className="block text-[12px] font-semibold">{news.title}</span><span className="mt-0.5 block text-[10px] leading-4 text-muted-foreground">{news.summary}</span></span><ArrowRight className="size-3.5 shrink-0 text-muted-foreground" /></a>)}</div></section>
       <Link to="/belajar" className="flex items-center justify-between rounded-2xl border border-border/60 bg-background px-4 py-3 hover:bg-muted/30"><div><p className="text-[12px] font-semibold">Mulai belajar</p><p className="text-[10px] text-muted-foreground">Lanjutkan materi sesuai levelmu.</p></div><span className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground"><ArrowRight className="size-4" /></span></Link>
     </div>}
   </AppShell>;
