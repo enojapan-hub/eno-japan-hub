@@ -31,14 +31,14 @@ function KotobaPage() {
       part.toLowerCase().includes("adjective") || part.toLowerCase().includes("kata sifat") ? "Menjelaskan sifat, keadaan, atau kondisi seseorang maupun sesuatu." :
         part.toLowerCase().includes("adverb") || part.toLowerCase().includes("kata keterangan") ? "Menjelaskan cara, waktu, tingkat, atau keadaan suatu tindakan." :
           "Percakapan dan bacaan sehari-hari sesuai konteks kalimat.",
-    part ? `Kelas kata: ${part}. Gunakan bersama pola kalimat yang sesuai dengan kelas katanya.` : "Gunakan sesuai konteks kalimat.",
+    `Konteks: percakapan sehari-hari, pekerjaan, sekolah, dan soal JLPT sesuai kebutuhan.`,
   ] : [];
 
   const explanation = item
-    ? `${item.term} digunakan sebagai ${part.toLowerCase()} untuk menyampaikan makna “${meaning}”. Perhatikan contoh kalimat karena makna dan nuansa sebuah kosakata dapat berubah sesuai konteks. Untuk belajar JLPT, fokuskan pada cara kata ini muncul dalam kalimat, bukan hanya menghafal arti tunggalnya.`
+    ? `${item.term} digunakan sebagai ${part.toLowerCase()} untuk menyampaikan makna “${meaning}”. Perhatikan contoh kalimat karena makna dan nuansa sebuah kosakata dapat berubah sesuai konteks. Untuk JLPT, pelajari cara kata ini digunakan dalam kalimat, bukan hanya arti tunggalnya.`
     : "";
 
-  return <AppShell title="言葉 · Kotoba" description={`Kosakata sesuai target ${level}, dengan bacaan, romaji, contoh, konteks, audio, dan latihan.`} backTo="/belajar" backLabel="Belajar">
+  return <AppShell title="言葉 · Kotoba" description={`Kosakata ${level} dengan format belajar lengkap: kanji, bacaan, romaji, arti Indonesia, contoh kalimat, penjelasan, konteks, audio, dan latihan.`} backTo="/belajar" backLabel="Belajar">
     {levelLoading ? <p className="mt-8 text-center">Memuat level belajar…</p> : levelError ? <p className="mt-8 text-center text-destructive">Level profil tidak dapat dimuat.</p> : <>
       <div className="mb-4 rounded-xl border bg-primary/5 px-4 py-3 text-sm">Level belajar: <strong>{level}</strong></div>
       {error && <p className="mt-5 text-sm text-destructive">Gagal memuat kosakata. Silakan coba lagi.</p>}
