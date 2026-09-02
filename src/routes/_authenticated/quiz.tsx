@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { BookOpenCheck, Clock3, GraduationCap, ListChecks, Sparkles } from "lucide-react";
@@ -25,8 +25,8 @@ const fallbackQuizzes = (["N5", "N4", "N3", "N2", "N1"] as Level[]).map((level) 
   description: `Latihan simulasi JLPT ${level}`,
   level,
   skill: null,
-  question_count: 50,
-  time_limit_seconds: 3600,
+  question_count: 5,
+  time_limit_seconds: 600,
   sort_order: 0,
 }));
 
@@ -43,7 +43,7 @@ function QuizPage() {
         <div className="mb-5 rounded-2xl border border-primary/15 bg-primary/[0.045] p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><GraduationCap className="size-5" /></div>
-            <div><h2 className="text-[16px] font-semibold tracking-tight">Simulasi JLPT</h2><p className="mt-1 text-[12px] leading-5 text-muted-foreground">Pilih tingkat ujian. Setiap simulasi berisi 50 soal dengan batas waktu 60 menit.</p></div>
+            <div><h2 className="text-[16px] font-semibold tracking-tight">Simulasi JLPT</h2><p className="mt-1 text-[12px] leading-5 text-muted-foreground">Pilih tingkat ujian dan mulai mengerjakan soal.</p></div>
           </div>
         </div>
 
@@ -68,8 +68,8 @@ function QuizPage() {
                     <h3 className="truncate text-[15px] font-semibold">{q.title}</h3>
                   </div>
                 </div>
-                <div className="mt-4 flex items-center gap-4 text-[11px] text-muted-foreground"><span className="inline-flex items-center gap-1"><ListChecks className="size-3.5" />{q.question_count} soal</span><span className="inline-flex items-center gap-1"><Clock3 className="size-3.5" />60 menit</span></div>
-                <Button asChild className="mt-4 h-9 w-full rounded-xl text-[12px]"><Link to="/quiz/$slug" params={{ slug: q.slug }}>Mulai simulasi</Link></Button>
+                <div className="mt-4 flex items-center gap-4 text-[11px] text-muted-foreground"><span className="inline-flex items-center gap-1"><ListChecks className="size-3.5" />{q.question_count} soal</span><span className="inline-flex items-center gap-1"><Clock3 className="size-3.5" />10 menit</span></div>
+                <Button asChild className="mt-4 h-10 w-full rounded-xl text-[12px]"><a href={`/quiz/${encodeURIComponent(q.slug)}`}>Mulai simulasi</a></Button>
               </CardContent>
             </Card>;
           })}
