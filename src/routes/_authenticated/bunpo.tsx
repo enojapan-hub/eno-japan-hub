@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { StudyFlashcard } from "@/components/learn/StudyFlashcard";
 import { fetchGrammarList, markItemLearned, asExamples, type Level } from "@/lib/learn-queries";
@@ -37,13 +37,6 @@ function BunpoPage() {
   const explanation = item?.explanation_id || "Penjelasan belum tersedia. Gunakan contoh kalimat untuk memahami konteksnya.";
   const guide = item ? guideFor(item.pattern) : null;
   const mistake = item ? mistakeFor(item.pattern) : null;
-  const choices = useMemo(() => {
-    if (!item) return [];
-    const pool = cards.filter(x => x.id !== item.id && x.meaning_id).slice(0, 3).map(x => x.meaning_id as string);
-    const all = [meaning, ...pool];
-    return all.map((value, i) => ({ value, original: i })).sort(() => Math.random() - 0.5);
-  }, [item?.id, cards.length, meaning]);
-  const correctIndex = Math.max(0, choices.findIndex(x => x.original === 0));
 
   return <AppShell title="文法 · Tata Bahasa" description={`Belajar tata bahasa sesuai target ${level}.`} backTo="/belajar" backLabel="Belajar">
     {levelLoading ? <p className="mt-8 text-center">Memuat tingkat belajar…</p> : levelError ? <p className="mt-8 text-center text-destructive">Tingkat dari profil tidak dapat dimuat.</p> : <>
@@ -51,7 +44,7 @@ function BunpoPage() {
       {error && <p className="mt-5 text-sm text-destructive">Tata bahasa gagal dimuat. Silakan coba lagi.</p>}
       {isLoading && <p className="mt-8 text-center text-sm text-muted-foreground">Memuat materi…</p>}
       {item && <div className="mt-6 space-y-5">
-        <StudyFlashcard index={index} total={cards.length} level={item.level} title={item.pattern} meaning={meaning} structure={item.structure} explanation={explanation} examples={examples} question={choices.length > 1 ? { prompt: `Apa fungsi pola ${item.pattern}?`, choices: choices.map(x => x.value), correctIndex } : null} learned={!!learned[item.id]} onLearned={() => mutation.mutate(item.id)} onPrev={() => setIndex(i => Math.max(0, i - 1))} onNext={() => setIndex(i => Math.min(cards.length - 1, i + 1))} />
+        <StudyFlashcard index={index} total={cards.length} level={item.level} title={item.pattern} meaning={meaning} structure={item.structure} explanation={explanation} examples={examples} learned={!!learned[item.id]} onLearned={() => mutation.mutate(item.id)} onPrev={() => setIndex(i => Math.max(0, i - 1))} onNext={() => setIndex(i => Math.min(cards.length - 1, i + 1))} />
         {guide && <section className="mx-auto max-w-2xl space-y-4 rounded-2xl border bg-background p-5">
           <div><p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground">FUNGSI</p><p className="mt-2 leading-7">{guide.fungsi}</p></div>
           <div><p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground">CARA PENGGUNAAN</p><ol className="mt-2 list-decimal space-y-2 pl-5 leading-7">{guide.penggunaan.map((x, i) => <li key={i}>{x}</li>)}</ol></div>
