@@ -3,6 +3,7 @@
 export async function authenticateCronRequest(
   request: Request,
 ): Promise<Response | null> {
+  // Vercel adds this header to configured Cron invocations.
   const cronSchedule = request.headers.get('x-vercel-cron-schedule')
   if (cronSchedule === '*/5 * * * *') {
     return null
