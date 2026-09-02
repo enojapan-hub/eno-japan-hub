@@ -1186,6 +1186,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_referral_signup: { Args: { p_code: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1195,6 +1196,7 @@ export type Database = {
       }
       is_content_editor: { Args: { _user_id: string }; Returns: boolean }
       is_premium: { Args: { _user_id: string }; Returns: boolean }
+      redeem_referral_points: { Args: { p_points: number }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "teacher" | "owner"
