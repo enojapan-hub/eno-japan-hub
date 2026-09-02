@@ -1,25 +1,65 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { ArrowLeft, ArrowRight, Check, Volume2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
-import { StudyFlashcard } from "@/components/learn/StudyFlashcard";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { fetchGrammarList, markItemLearned, asExamples, type Level } from "@/lib/learn-queries";
 import { fetchTargetLevel } from "@/lib/target-level";
 
 export const Route = createFileRoute("/_authenticated/bunpo")({ component: BunpoPage });
 
-function mistakeFor(pattern: string) {
-  if (pattern.includes("なければならない")) return { wrong: "食べるなければならない。", right: "食べなければならない。", note: "Kata kerja harus diubah ke bentuk ない terlebih dahulu, kemudian い pada bentuk ない dihilangkan sebelum ditambahkan なければならない." };
-  if (pattern.includes("てはいけない")) return { wrong: "食べてはいけます。", right: "食べてはいけません。", note: "Pola 〜てはいけない menyatakan larangan. Dalam percakapan sopan, 〜てはいけません lebih lazim." };
-  if (pattern.includes("たことがある")) return { wrong: "日本へ行くことがあります。", right: "日本へ行ったことがあります。", note: "Pola 〜たことがあります menyatakan pengalaman yang pernah dilakukan, sehingga kata kerja memakai bentuk た." };
-  return { wrong: null, right: null, note: "Periksa bentuk kata yang berada sebelum pola. Arti pola dapat berubah jika bentuk sebelumnya salah." };
-}
+type GrammarDetail = {
+  structure: string[];
+  type: string;
+  kind: string;
+  politeness: string;
+  about: string;
+  usage: string;
+  synonyms: string[];
+  antonyms: string[];
+  related: string[];
+  levels: Level[];
+};
 
-function guideFor(pattern: string) {
-  if (pattern.includes("たことがある")) return { fungsi: "Menyatakan pengalaman yang pernah dialami setidaknya satu kali.", penggunaan: ["Menceritakan pengalaman hidup tanpa perlu menyebut waktu tepatnya.", "Menanyakan apakah seseorang pernah melakukan sesuatu.", "Membicarakan pengalaman yang belum pernah dilakukan dengan bentuk negatif."], efisien: "Ingat sebagai: bentuk た + ことがあります = pernah melakukan. Jika membicarakan kejadian yang sedang terjadi atau kebiasaan, gunakan pola lain sesuai maksud kalimat." };
-  if (pattern.includes("なければならない")) return { fungsi: "Menyatakan kewajiban atau sesuatu yang harus dilakukan.", penggunaan: ["Kewajiban dalam pekerjaan atau sekolah.", "Aturan dan keharusan sehari-hari.", "Menjelaskan sesuatu yang harus dilakukan agar tujuan tertentu tercapai."], efisien: "Mulai dari bentuk ない, lalu ubah menjadi 〜なければならない. Untuk percakapan yang lebih santai, pola 〜なきゃ juga dapat ditemui." };
-  if (pattern.includes("てはいけない")) return { fungsi: "Menyatakan larangan atau sesuatu yang tidak boleh dilakukan.", penggunaan: ["Larangan berdasarkan aturan.", "Memberi tahu bahwa suatu tindakan tidak diperbolehkan.", "Memberi peringatan kepada orang lain."], efisien: "Ingat sebagai: bentuk て + はいけない = tidak boleh. Dalam situasi sopan gunakan 〜てはいけません." };
-  return { fungsi: "Menjelaskan fungsi pola dalam kalimat dan hubungan pola dengan konteks pembicaraan.", penggunaan: ["Perhatikan siapa yang berbicara dan kepada siapa.", "Perhatikan waktu, tujuan, dan tingkat kesopanan.", "Bandingkan dengan pola yang memiliki arti hampir sama sebelum memilih pola."], efisien: "Jangan menghafalkan arti satu baris saja. Hafalkan bentuknya bersama satu contoh utama dan satu situasi penggunaan." };
+function detailFor(pattern: string, level: Level, storedStructure?: string | null): GrammarDetail {
+  const p = pattern.trim();
+  if (p.includes("だけ")) return {
+    structure: ["Kata benda + だけ", "Kata kerja bentuk biasa + だけ", "Kata sifat (i) + だけ", "Kata sifat (na) + な + だけ"],
+    type: "partikel adverbal",
+    kind: "partikel",
+    politeness: "standar",
+    about: "だけ membatasi sesuatu pada jumlah, orang, benda, atau tindakan tertentu. Arti dasarnya adalah hanya atau cuma. Dalam beberapa pola, だけ dapat menekankan batas atau tingkat yang dicapai.",
+    usage: "Gunakan だけ ketika ingin mengatakan bahwa sesuatu terbatas pada hal yang disebutkan. だけ biasanya ditempatkan setelah kata atau frasa yang dibatasi. Dalam kalimat seperti 私だけ, fokusnya hanya pada saya; sedangkan これだけ食べる berarti makan hanya sebanyak ini. Bedakan dengan しか yang hampir selalu membutuhkan bentuk negatif dan memberi nuansa pembatasan yang lebih kuat.",
+    synonyms: ["しか〜ない — hanya, tetapi harus menggunakan bentuk negatif", "のみ — hanya; lebih formal atau tertulis"],
+    antonyms: ["全部 — semua", "みんな — semuanya / semua orang"],
+    related: ["しか〜ない", "のみ", "ばかり", "ほど"],
+    levels: ["N5", "N4", "N3"],
+  };
+  if (p.includes("たことがある")) return {
+    structure: ["Kata kerja bentuk た + ことがある", "Kata kerja bentuk た + ことがない"], type: "pola tata bahasa", kind: "ungkapan pengalaman", politeness: "standar",
+    about: "Menyatakan pengalaman pernah atau belum pernah melakukan sesuatu.", usage: "Dipakai untuk membicarakan pengalaman sampai sekarang tanpa harus menyebut waktu spesifik. Bentuk た ditempatkan sebelum ことがある.", synonyms: ["経験がある — memiliki pengalaman; lebih formal"], antonyms: ["たことがない — belum pernah"], related: ["ことがある", "ことがない"], levels: ["N5", "N4"],
+  };
+  if (p.includes("てはいけない")) return {
+    structure: ["Kata kerja bentuk て + はいけない", "Kata kerja bentuk て + はいけません"], type: "pola tata bahasa", kind: "ungkapan larangan", politeness: "standar; はいけません lebih sopan",
+    about: "Menyatakan bahwa suatu tindakan tidak boleh dilakukan.", usage: "Digunakan untuk aturan, larangan, atau peringatan. Bentuk てはいけません cocok untuk situasi sopan; てはいけない lebih langsung dan netral.", synonyms: ["禁止する — melarang; digunakan sebagai verba"], antonyms: ["てもいい — boleh melakukan"], related: ["てもいい", "なければならない"], levels: ["N5", "N4"],
+  };
+  if (p.includes("なければならない")) return {
+    structure: ["Kata kerja bentuk ない → い diganti menjadi ければならない", "Kata kerja bentuk ない + なければならない"], type: "pola tata bahasa", kind: "ungkapan kewajiban", politeness: "standar",
+    about: "Menyatakan kewajiban atau sesuatu yang harus dilakukan.", usage: "Dipakai ketika pembicara menyatakan keharusan berdasarkan aturan, keadaan, tanggung jawab, atau kebutuhan. Dalam percakapan, bentuk seperti なきゃ juga sering digunakan.", synonyms: ["必要がある — perlu / ada kebutuhan untuk"], antonyms: ["なくてもいい — tidak harus"], related: ["なくてもいい", "てはいけない", "べきだ"], levels: ["N4", "N3"],
+  };
+  const rawStructure = storedStructure?.split(/\n|\\n|;/).map(x => x.trim()).filter(Boolean) ?? [];
+  return {
+    structure: rawStructure.length ? rawStructure : ["Kata/frasa + pola tata bahasa sesuai bentuk yang ditentukan"],
+    type: "pola tata bahasa",
+    kind: "ungkapan tata bahasa",
+    politeness: "standar",
+    about: `Pola ${p} digunakan untuk menyampaikan makna yang ditentukan oleh konteks kalimat.`,
+    usage: `Perhatikan bentuk kata yang berada sebelum ${p}, lalu gunakan pola sesuai fungsi dan konteksnya. Jangan hanya menghafalkan terjemahan; pahami hubungan pola dengan maksud kalimat.`,
+    synonyms: [], antonyms: [], related: [], levels: [level],
+  };
 }
 
 function BunpoPage() {
@@ -32,23 +72,43 @@ function BunpoPage() {
   const mutation = useMutation({ mutationFn: (id: string) => markItemLearned({ itemType: "grammar", itemId: id, level }), onSuccess: (_, id) => { setLearned(x => ({ ...x, [id]: true })); void qc.invalidateQueries({ queryKey: ["my-progress"] }); } });
   const cards = data ?? [];
   const item = cards[index];
-  const examples = item ? asExamples(item.examples) : [];
+  const examples = item ? asExamples(item.examples).slice(0, 3) : [];
   const meaningSource = typeof item?.meaning_id === "string" ? item.meaning_id.trim() : "";
   const englishSource = typeof item?.meaning_en === "string" ? item.meaning_en.trim() : "";
   const meaning = meaningSource && meaningSource.toLowerCase() !== englishSource.toLowerCase() ? meaningSource : "Terjemahan Indonesia sedang diproses…";
-  const explanation = item?.explanation_id || "Penjelasan Indonesia sedang diproses…";
-  const guide = item ? guideFor(item.pattern) : null;
-  const mistake = item ? mistakeFor(item.pattern) : null;
+  const detail = item ? detailFor(item.pattern, item.level as Level, item.structure) : null;
+  const progress = cards.length ? Math.round(((index + 1) / cards.length) * 100) : 0;
+  const speak = (text: string) => { if (!window.speechSynthesis) return; window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = "ja-JP"; u.rate = 0.85; window.speechSynthesis.speak(u); };
 
   return <AppShell title="文法 · Tata Bahasa" description={`Belajar tata bahasa sesuai target ${level}.`} backTo="/belajar" backLabel="Belajar">
     {levelLoading ? <p className="mt-8 text-center">Memuat tingkat belajar…</p> : levelError ? <p className="mt-8 text-center text-destructive">Tingkat dari profil tidak dapat dimuat.</p> : <>
       <div className="mb-4 rounded-xl border bg-primary/5 px-4 py-3 text-sm">Tingkat belajar: <strong>{level}</strong></div>
       {error && <p className="mt-5 text-sm text-destructive">Tata bahasa gagal dimuat. Silakan coba lagi.</p>}
       {isLoading && <p className="mt-8 text-center text-sm text-muted-foreground">Memuat materi…</p>}
-      {item && <div className="mt-6 space-y-5">
-        <StudyFlashcard index={index} total={cards.length} level={item.level} title={item.pattern} meaning={meaning} structure={item.structure} explanation={explanation} examples={examples} learned={!!learned[item.id]} onLearned={() => mutation.mutate(item.id)} onPrev={() => setIndex(i => Math.max(0, i - 1))} onNext={() => setIndex(i => Math.min(cards.length - 1, i + 1))} />
-        {guide && <section className="mx-auto max-w-2xl space-y-4 rounded-2xl border bg-background p-5"><div><p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground">FUNGSI</p><p className="mt-2 leading-7">{guide.fungsi}</p></div><div><p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground">CARA PENGGUNAAN</p><ol className="mt-2 list-decimal space-y-2 pl-5 leading-7">{guide.penggunaan.map((x, i) => <li key={i}>{x}</li>)}</ol></div><div><p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground">CARA MENGGUNAKAN DENGAN EFISIEN</p><p className="mt-2 leading-7">{guide.efisien}</p></div></section>}
-        {mistake && <section className="mx-auto max-w-2xl space-y-3 rounded-2xl border bg-background p-5"><p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground">KESALAHAN UMUM</p>{mistake.wrong && <><div className="rounded-xl bg-destructive/5 p-4"><p className="text-sm font-semibold text-destructive">✗ {mistake.wrong}</p></div><div className="rounded-xl bg-emerald-500/5 p-4"><p className="text-sm font-semibold">✓ {mistake.right}</p></div></>}<p className="text-sm leading-6 text-muted-foreground">{mistake.note}</p></section>}
+      {item && detail && <div className="mt-6 space-y-5">
+        <div className="mx-auto max-w-2xl"><div className="mb-3 flex items-center justify-between text-xs text-muted-foreground"><span>Materi {index + 1} dari {cards.length}</span><span>{progress}% selesai</span></div><div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} /></div></div>
+
+        <Card className="mx-auto max-w-2xl overflow-hidden border-border/80 shadow-xl">
+          <CardHeader className="space-y-4 bg-gradient-to-br from-primary/10 via-background to-secondary/20 px-6 py-8 text-center sm:px-8">
+            <div className="flex items-center justify-center gap-2"><Badge variant="secondary">{item.level}</Badge><Badge variant="outline">BUNPOU</Badge></div>
+            <div lang="ja" className="font-jp text-5xl font-bold tracking-wide sm:text-6xl">{item.pattern}</div>
+            <p className="text-xl font-semibold leading-relaxed">Arti : {meaning}</p>
+            <Button type="button" variant="outline" size="sm" className="mx-auto" onClick={() => speak(item.pattern)}><Volume2 className="mr-2 size-4" />Dengarkan</Button>
+          </CardHeader>
+          <CardContent className="space-y-5 p-5 sm:p-7">
+            <section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">STRUKTUR</h3><ul className="mt-3 list-disc space-y-2 pl-5 leading-7">{detail.structure.map((x, i) => <li key={`${x}-${i}`}>{x}</li>)}</ul></section>
+            <section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">DETAIL</h3><dl className="mt-3 space-y-3 text-sm"><div className="flex gap-3"><dt className="w-36 shrink-0 text-muted-foreground">Tipe kata</dt><dd className="font-medium">{detail.type}</dd></div><div className="flex gap-3"><dt className="w-36 shrink-0 text-muted-foreground">Jenis kata</dt><dd className="font-medium">{detail.kind}</dd></div><div className="flex gap-3"><dt className="w-36 shrink-0 text-muted-foreground">Tingkat kesopanan</dt><dd className="font-medium">{detail.politeness}</dd></div></dl></section>
+            <section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">TENTANG</h3><p className="mt-3 leading-7">{detail.about}</p></section>
+            <section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">CONTOH KALIMAT</h3><div className="mt-4 space-y-3">{examples.length ? examples.map((ex, i) => <div key={`${ex.jp ?? "contoh"}-${i}`} className="rounded-xl border bg-background p-4"><div className="flex items-start gap-2"><div className="min-w-0 flex-1"><p lang="ja" className="font-jp text-lg leading-8">{ex.jp ?? ""}</p>{ex.reading && <p lang="ja" className="mt-1 text-sm text-muted-foreground">{ex.reading}</p>}<p className="mt-2 text-sm leading-6">{ex.id ?? "Arti kalimat sedang diproses…"}</p></div>{ex.jp && <Button type="button" size="icon" variant="ghost" aria-label="Dengarkan contoh kalimat" onClick={() => speak(ex.jp!)}><Volume2 className="size-4" /></Button>}</div></div>) : <p className="text-sm text-muted-foreground">Contoh kalimat belum tersedia.</p>}</div></section>
+            <section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">PENJELASAN TENTANG PENGGUNAAN {item.pattern}</h3><p className="mt-3 whitespace-pre-line leading-7">{item.explanation_id || detail.usage}</p>{item.explanation_id && <p className="mt-4 border-t pt-4 text-sm leading-6 text-muted-foreground">{detail.usage}</p>}</section>
+            <div className="grid gap-4 sm:grid-cols-2"><section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">SINONIM</h3>{detail.synonyms.length ? <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6">{detail.synonyms.map((x, i) => <li key={i}>{x}</li>)}</ul> : <p className="mt-3 text-sm text-muted-foreground">Tidak ada sinonim utama.</p>}</section><section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">ANTONIM</h3>{detail.antonyms.length ? <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6">{detail.antonyms.map((x, i) => <li key={i}>{x}</li>)}</ul> : <p className="mt-3 text-sm text-muted-foreground">Tidak ada antonim langsung.</p>}</section></div>
+            <section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">TATA BAHASA TERKAIT</h3>{detail.related.length ? <div className="mt-3 flex flex-wrap gap-2">{detail.related.map((x, i) => <Badge key={`${x}-${i}`} variant="outline" className="px-3 py-1.5">{x}</Badge>)}</div> : <p className="mt-3 text-sm text-muted-foreground">Belum ada tata bahasa terkait yang terdata.</p>}</section>
+            <section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">ADA DI LEVEL BERAPA SAJA?</h3><div className="mt-3 flex flex-wrap gap-2">{detail.levels.map(l => <Badge key={l} variant={l === item.level ? "default" : "secondary"}>{l}</Badge>)}</div><p className="mt-3 text-xs leading-5 text-muted-foreground">Level menunjukkan tingkat materi ENO JAPAN. Beberapa pola dapat muncul kembali di level berbeda untuk penggunaan yang lebih luas.</p></section>
+          </CardContent>
+        </Card>
+
+        <div className="mx-auto max-w-2xl"><Button type="button" variant={learned[item.id] ? "secondary" : "outline"} onClick={() => mutation.mutate(item.id)} disabled={!!learned[item.id]} className="h-11 w-full rounded-xl font-semibold">{learned[item.id] ? <><Check className="mr-2 size-4" />Sudah dipelajari</> : "Tandai sudah dipelajari"}</Button></div>
+        <div className="mx-auto max-w-2xl rounded-2xl border bg-muted/30 p-2 sm:p-2.5"><div className="grid grid-cols-2 gap-2"><Button type="button" variant="ghost" onClick={() => setIndex(i => Math.max(0, i - 1))} disabled={index === 0} className="h-12 rounded-xl font-semibold"><ArrowLeft className="mr-2 size-4" />Sebelumnya</Button><Button type="button" onClick={() => setIndex(i => Math.min(cards.length - 1, i + 1))} disabled={index === cards.length - 1} className="h-12 rounded-xl font-semibold">Berikutnya<ArrowRight className="ml-2 size-4" /></Button></div></div>
       </div>}
       {!isLoading && !cards.length && <p className="mt-8 text-center text-sm text-muted-foreground">Belum ada pola tata bahasa untuk {level}.</p>}
     </>}
