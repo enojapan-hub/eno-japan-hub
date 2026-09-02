@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
 import { BookOpenCheck, Clock3, GraduationCap, ListChecks, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -69,7 +68,7 @@ function QuizPage() {
                   </div>
                 </div>
                 <div className="mt-4 flex items-center gap-4 text-[11px] text-muted-foreground"><span className="inline-flex items-center gap-1"><ListChecks className="size-3.5" />{q.question_count} soal</span><span className="inline-flex items-center gap-1"><Clock3 className="size-3.5" />10 menit</span></div>
-                <Button asChild className="mt-4 h-10 w-full rounded-xl text-[12px]"><a href={`/quiz/${encodeURIComponent(q.slug)}`}>Mulai simulasi</a></Button>
+                <Button type="button" className="mt-4 h-10 w-full rounded-xl text-[12px]" onClick={() => { window.location.assign(`/quiz/${encodeURIComponent(q.slug)}`); }}>Mulai simulasi</Button>
               </CardContent>
             </Card>;
           })}
