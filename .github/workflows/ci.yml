@@ -21,9 +21,6 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Generate TanStack routes
-        run: npx @tanstack/router-cli@1.170.18 generate
-
       - name: Typecheck
         run: npx tsc --noEmit
 
