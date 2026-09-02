@@ -15,6 +15,7 @@ import {
 import { getMyAccount } from "@/lib/profile.functions";
 import { fetchDailyPlan } from "@/lib/daily-plan";
 import { AppShell } from "@/components/layout/AppShell";
+import { JlptStatusBar } from "@/components/layout/JlptStatusBar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LEVELS, type Level } from "@/lib/learn-queries";
@@ -79,6 +80,8 @@ function DashboardPage() {
             <p className="text-[12px] text-muted-foreground">{name ? `Selamat datang, ${name}` : "Selamat pagi! 👋"}</p>
             <h1 className="mt-1 text-[23px] font-bold tracking-tight">Ayo belajar bahasa Jepang hari ini!</h1>
           </section>
+
+          <JlptStatusBar />
 
           <Card className="rounded-2xl border-border/70 bg-card shadow-sm">
             <CardContent className="p-4">
