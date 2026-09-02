@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { signOutCleanly } from "@/lib/auth-actions";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/layout/BrandMark";
-import { JlptStatusBar } from "@/components/layout/JlptStatusBar";
 
 const navItems = [
   { to: "/dashboard", label: "Beranda", icon: Home },
@@ -42,7 +41,6 @@ export function AppShell({ title, description, backTo, backLabel = "Kembali", co
     </header>
 
     <main className={cn("mx-auto w-full max-w-5xl px-4 py-5", compact && "py-4")}>
-      {!focusMode && !compact && <JlptStatusBar />}
       {!compact && !backTo && <div className="mb-5">{description && <p className="text-[12px] leading-5 text-muted-foreground">{description}</p>}</div>}
       {!compact && backTo && description && <p className="mb-4 text-[12px] text-muted-foreground">{description}</p>}
       {children}
