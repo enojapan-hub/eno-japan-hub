@@ -9,7 +9,8 @@ export const Route = createFileRoute('/api/leaderboard')({
     const { data: auth, error: authError } = await supabaseAdmin.auth.getUser(token)
     if (authError || !auth.user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
     const limit = Math.min(Math.max(Number(new URL(request.url).searchParams.get('limit') ?? 50), 1), 100)
-    const { data, error } = await (supabaseAdmin as any).from('leaderboard').select('*').limit(limit)
+    const client = (supabaseAdmin as any)
+    const { data, error } = await client.rpc('get_leaderboard', { p_limit: limit })
     if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json({ leaderboard: data ?? [] })
   } } },
