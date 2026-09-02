@@ -2,7 +2,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, Link, createRootRouteWithContext, useRouter, HeadContent, Scripts } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -13,7 +12,6 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => { reportLovableError(error, { boundary: "tanstack_root_error_component" }); }, [error]);
   return <div className="grid min-h-screen place-items-center bg-background px-4"><div className="max-w-md text-center"><h1 className="text-xl font-semibold">Halaman ini gagal dimuat</h1><p className="mt-2 text-sm text-muted-foreground">Terjadi kesalahan. Coba muat ulang atau kembali ke beranda.</p><div className="mt-6 flex justify-center gap-2"><button onClick={() => { router.invalidate(); reset(); }} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Coba lagi</button><Link to="/" className="rounded-lg border px-4 py-2 text-sm font-medium">Beranda</Link></div></div></div>;
 }
 
