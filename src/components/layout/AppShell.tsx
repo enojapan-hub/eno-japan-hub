@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Bell, BookOpen, Brain, Home, ListChecks, LogOut, Moon, Settings, Sun, User, ArrowLeft } from "lucide-react";
+import { Bell, BookOpen, Brain, Home, ListChecks, LogOut, Moon, Settings, Sun, User, ArrowLeft } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { signOutCleanly } from "@/lib/auth-actions";
@@ -10,7 +10,6 @@ import { BrandMark } from "@/components/layout/BrandMark";
 const navItems = [
   { to: "/dashboard", label: "Beranda", icon: Home },
   { to: "/belajar", label: "Belajar", icon: BookOpen },
-  { to: "/progress", label: "Kemajuan", icon: BarChart3 },
   { to: "/quiz", label: "Simulasi", icon: ListChecks },
   { to: "/profil", label: "Akun", icon: User },
 ] as const;
