@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { LEVELS, type Level } from "@/lib/learn-queries";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Beranda — enonihongo" }, { name: "description", content: "Ringkasan target harian dan progres belajar di enonihongo." }] }),
+  head: () => ({ meta: [{ title: "Beranda — enonihongo" }, { name: "description", content: "Ringkasan target harian dan kemajuan belajar di enonihongo." }] }),
   component: DashboardPage,
 });
 
@@ -24,12 +24,12 @@ function DashboardPage() {
   const daily = useQuery({ queryKey: ["daily-plan", level], queryFn: () => fetchDailyPlan(level), enabled: !isLoading && !isError });
   const name = data?.profile?.display_name ?? "";
 
-  return <AppShell title={isLoading ? "Beranda" : name ? `Konnichiwa, ${name}` : "Selamat belajar"} description={`Target ${level} · belajar sedikit setiap hari`}>
+  return <AppShell title={isLoading ? "Beranda" : name ? `Selamat datang, ${name}` : "Selamat belajar"} description={`Target ${level} · belajar sedikit setiap hari`}>
     {isLoading ? <div className="grid gap-3 sm:grid-cols-3">{[0, 1, 2].map(i => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}</div> : isError ? <Card className="shadow-none"><CardHeader><CardTitle>Data belum bisa dimuat</CardTitle><CardDescription>{(error as Error).message}</CardDescription></CardHeader><CardContent><Button onClick={() => refetch()}>Coba lagi</Button></CardContent></Card> : <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-3"><TargetCard icon="漢字" label="Kanji" value={data?.settings?.daily_kanji_target ?? 5} /><TargetCard icon="言葉" label="Kotoba" value={data?.settings?.daily_vocab_target ?? 10} /><TargetCard icon="文法" label="Bunpō" value={data?.settings?.daily_grammar_target ?? 5} /></div>
       <Card className="overflow-hidden shadow-none"><CardHeader className="border-b bg-muted/20"><div className="flex items-center justify-between gap-3"><div><CardTitle>Belajar hari ini</CardTitle><CardDescription>{daily.isLoading ? "Menyiapkan materi…" : `${daily.data?.completed ?? 0}/${daily.data?.target ?? 5} selesai`}</CardDescription></div><Badge variant="secondary">{level}</Badge></div></CardHeader><CardContent className="space-y-1 p-3">{daily.error ? <p className="p-3 text-sm text-destructive">Gagal memuat target harian.</p> : daily.data?.items.map(item => { const path = item.type === "kanji" ? "/kanji/$id" : item.type === "vocabulary" ? "/kotoba/$id" : "/bunpo/$id"; return <Link key={`${item.type}:${item.id}`} to={path as never} params={{ id: item.id } as never} className="flex items-center justify-between gap-3 rounded-xl p-3 hover:bg-muted"><div><div className="font-medium">{item.label}</div><div className="text-xs text-muted-foreground">{item.reading ? `${item.reading} · ` : ""}{item.meaning}</div></div><ArrowRight className="size-4 shrink-0 text-muted-foreground" /></Link>; })}{!daily.isLoading && !daily.data?.items.length && <p className="p-3 text-sm text-muted-foreground">Belum ada materi terbit untuk level ini.</p>}</CardContent></Card>
-      <div className="grid gap-3 sm:grid-cols-2"><Stat icon={Flame} label="Streak" value={`${data?.stats?.current_streak ?? 0} hari`} /><Stat icon={Target} label="Target JLPT" value={level} /></div>
-      <div className="flex flex-wrap gap-2"><Button asChild><Link to="/belajar">Mulai belajar<ArrowRight /></Link></Button><Button asChild variant="outline"><Link to="/quiz">Latihan quiz</Link></Button><Button asChild variant="outline"><Link to="/progress">Lihat progress</Link></Button></div>
+      <div className="grid gap-3 sm:grid-cols-2"><Stat icon={Flame} label="Rangkaian belajar" value={`${data?.stats?.current_streak ?? 0} hari`} /><Stat icon={Target} label="Target JLPT" value={level} /></div>
+      <div className="flex flex-wrap gap-2"><Button asChild><Link to="/belajar">Mulai belajar<ArrowRight /></Link></Button><Button asChild variant="outline"><Link to="/quiz">Latihan soal</Link></Button><Button asChild variant="outline"><Link to="/progress">Lihat kemajuan</Link></Button></div>
     </div>}
   </AppShell>;
 }
