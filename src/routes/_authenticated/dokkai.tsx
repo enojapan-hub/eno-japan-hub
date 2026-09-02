@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,7 +37,7 @@ function DokkaiPage() {
                   Perkiraan waktu: {p.estimated_minutes ?? "—"} menit
                 </span>
                 <Button size="sm" asChild>
-                  <Link to="/dokkai/$id" params={{ id: p.id }}>Baca lengkap</Link>
+                  <a href={`/dokkai/${encodeURIComponent(p.id)}`}>Baca lengkap</a>
                 </Button>
               </div>
             </CardContent>
