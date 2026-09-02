@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, GraduationCap, Repeat } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -15,21 +15,21 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "Platform belajar Jepang N5–N1 untuk belajar, berlatih, dan mengukur progress." },
     ],
   }),
-  component: LandingPage,
+  component: HomePage,
 });
 
-function LandingPage() {
+function HomePage() {
   const { user, loading } = useAuth();
+
+  // Setelah login, / menjadi Beranda aplikasi. Halaman marketing hanya tampil
+  // untuk pengguna yang belum login sehingga tidak ada lagi dua "home" berbeda.
+  if (!loading && user) return <Navigate to="/dashboard" replace />;
 
   return (
     <div className="min-h-screen bg-background">
       <header className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-4 sm:px-6">
         <BrandMark />
-        {loading ? <span className="h-9 w-24" aria-hidden /> : user ? (
-          <Button asChild size="sm"><Link to="/dashboard">Buka aplikasi</Link></Button>
-        ) : (
-          <Button asChild size="sm" variant="outline"><Link to="/auth">Masuk</Link></Button>
-        )}
+        {loading ? <span className="h-9 w-24" aria-hidden /> : <Button asChild size="sm" variant="outline"><Link to="/auth">Masuk</Link></Button>}
       </header>
 
       <main>
@@ -38,7 +38,7 @@ function LandingPage() {
           <h1 className="mt-3 max-w-3xl text-4xl font-semibold leading-[1.12] tracking-tight sm:text-6xl">Belajar bahasa Jepang dengan tenang, konsisten, dan terukur.</h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">enonihongo membantu kamu membangun kebiasaan belajar melalui kanji, kotoba, bunpo, reading, listening, quiz, dan latihan JLPT.</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg"><Link to={user ? "/dashboard" : "/auth"}>{user ? "Lanjut belajar" : "Mulai gratis"}<ArrowRight aria-hidden className="ml-1 size-4" /></Link></Button>
+            <Button asChild size="lg"><Link to="/auth">Mulai gratis<ArrowRight aria-hidden className="ml-1 size-4" /></Link></Button>
           </div>
 
           <div aria-hidden className="mt-14 rounded-3xl border border-border bg-card px-6 py-10 text-center shadow-sm sm:px-10">
