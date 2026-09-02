@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Volume2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Info, Layers3, Lightbulb, Link2, ListTree, MessageCircle, Sparkles, Volume2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,10 +36,18 @@ function normalizeGrammarNotation(text: string) {
     .replace(/\bVerb\b/gi, "Kata Kerja")
     .replace(/\bV\b/g, "Kata Kerja")
     .replace(/\bN\b/g, "Kata Benda")
-    .replace(/\bO\b/g, "Objek");
+    .replace(/\bO\b/g, "Objek")
+    .replace(/\s*\+\s*/g, " + ")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;:])/g, "$1")
+    .trim();
 }
 
 function FuriganaDetailText({ text }: { text: string }) { return <FuriganaText text={normalizeGrammarNotation(text)} />; }
+
+function SectionTitle({ icon: Icon, children }: { icon: typeof Info; children: React.ReactNode }) {
+  return <h3 className="flex items-center gap-2 text-sm font-bold tracking-wide"><span className="inline-flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="size-4" /></span><span>{children}</span></h3>;
+}
 
 function detailFor(pattern: string, level: Level, storedStructure?: string | null): GrammarDetail {
   const p = pattern.trim();
@@ -72,6 +80,7 @@ function BunpoPage() {
   const meaning = meaningSource && meaningSource.toLowerCase() !== englishSource.toLowerCase() ? meaningSource : "Terjemahan Indonesia sedang diproses…";
   const detail = item ? detailFor(item.pattern, item.level as Level, item.structure) : null;
   const progress = cards.length ? Math.round(((index + 1) / cards.length) * 100) : 0;
+  const normalizedPattern = item ? normalizeGrammarNotation(item.pattern) : "";
   const speak = (text: string) => { if (!window.speechSynthesis) return; window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = "ja-JP"; u.rate = 0.85; window.speechSynthesis.speak(u); };
 
   return <AppShell title="文法 · Tata Bahasa" description={`Belajar tata bahasa sesuai target ${level}.`} backTo="/belajar" backLabel="Belajar">
@@ -84,19 +93,19 @@ function BunpoPage() {
         <Card className="mx-auto max-w-2xl overflow-hidden border-border/80 shadow-xl">
           <CardHeader className="space-y-4 bg-gradient-to-br from-primary/10 via-background to-secondary/20 px-6 py-8 text-center sm:px-8">
             <div className="flex items-center justify-center gap-2"><Badge variant="secondary">{item.level}</Badge><Badge variant="outline">BUNPOU</Badge></div>
-            <div lang="ja" className="font-jp text-5xl font-bold tracking-wide sm:text-6xl"><FuriganaText text={item.pattern} /></div>
+            <div lang="ja" className="font-jp text-5xl font-bold tracking-wide sm:text-6xl"><FuriganaText text={normalizedPattern} /></div>
             <p className="text-xl font-semibold leading-relaxed">Arti : {meaning}</p>
             <Button type="button" variant="outline" size="sm" className="mx-auto" onClick={() => speak(item.pattern)}><Volume2 className="mr-2 size-4" />Dengarkan</Button>
           </CardHeader>
           <CardContent className="space-y-5 p-5 sm:p-7">
-            <section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">STRUKTUR</h3><ul className="mt-3 list-disc space-y-2 pl-5 leading-7">{detail.structure.map((x, i) => <li key={`${x}-${i}`}><FuriganaDetailText text={x} /></li>)}</ul></section>
-            <section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">DETAIL</h3><dl className="mt-3 space-y-3 text-sm"><div className="flex gap-3"><dt className="w-36 shrink-0 text-muted-foreground">Tipe kata</dt><dd className="font-medium"><FuriganaDetailText text={detail.type} /></dd></div><div className="flex gap-3"><dt className="w-36 shrink-0 text-muted-foreground">Jenis kata</dt><dd className="font-medium"><FuriganaDetailText text={detail.kind} /></dd></div><div className="flex gap-3"><dt className="w-36 shrink-0 text-muted-foreground">Tingkat kesopanan</dt><dd className="font-medium"><FuriganaDetailText text={detail.politeness} /></dd></div></dl></section>
-            <section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">TENTANG</h3><p className="mt-3 leading-7"><FuriganaDetailText text={detail.about} /></p></section>
-            <section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">CONTOH KALIMAT</h3><p className="mt-2 text-sm text-muted-foreground">Setiap contoh menampilkan kalimat Jepang, furigana di atas kanji, lalu arti Bahasa Indonesia.</p><div className="mt-4 space-y-3">{examples.length ? examples.map((ex, i) => <div key={`${ex.jp ?? "contoh"}-${i}`} className="rounded-xl border bg-background p-4"><div className="flex items-start gap-2"><div className="min-w-0 flex-1"><p lang="ja" className="font-jp text-lg leading-9"><FuriganaText text={ex.jp ?? ""} reading={ex.reading} /></p><p className="mt-2 border-t pt-2 text-sm leading-6">{ex.id ?? "Arti Bahasa Indonesia belum tersedia."}</p></div>{ex.jp && <Button type="button" size="icon" variant="ghost" aria-label="Dengarkan contoh kalimat" onClick={() => speak(ex.jp!)}><Volume2 className="size-4" /></Button>}</div></div>) : <p className="text-sm text-muted-foreground">Belum ada 3 contoh kalimat pada data materi ini.</p>}</div></section>
-            <section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">PENJELASAN TENTANG PENGGUNAAN <FuriganaText text={item.pattern} /></h3><p className="mt-3 whitespace-pre-line leading-7"><FuriganaDetailText text={item.explanation_id || detail.usage} /></p>{item.explanation_id && <p className="mt-4 border-t pt-4 text-sm leading-6 text-muted-foreground"><FuriganaDetailText text={detail.usage} /></p>}</section>
-            <div className="grid gap-4 sm:grid-cols-2"><section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">SINONIM</h3>{detail.synonyms.length ? <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6">{detail.synonyms.map((x, i) => <li key={i}><FuriganaDetailText text={x} /></li>)}</ul> : <p className="mt-3 text-sm text-muted-foreground">Tidak ada sinonim utama.</p>}</section><section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">ANTONIM</h3>{detail.antonyms.length ? <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6">{detail.antonyms.map((x, i) => <li key={i}><FuriganaDetailText text={x} /></li>)}</ul> : <p className="mt-3 text-sm text-muted-foreground">Tidak ada antonim langsung.</p>}</section></div>
-            <section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">TATA BAHASA TERKAIT</h3>{detail.related.length ? <div className="mt-3 flex flex-wrap gap-2">{detail.related.map((x, i) => <Badge key={`${x}-${i}`} variant="outline" className="px-3 py-1.5"><FuriganaDetailText text={x} /></Badge>)}</div> : <p className="mt-3 text-sm text-muted-foreground">Belum ada tata bahasa terkait yang terdata.</p>}</section>
-            <section className="rounded-2xl border bg-muted/30 p-5"><h3 className="text-sm font-bold">ADA DI LEVEL BERAPA SAJA?</h3><div className="mt-3 flex flex-wrap gap-2">{detail.levels.map(l => <Badge key={l} variant={l === item.level ? "default" : "secondary"}>{l}</Badge>)}</div><p className="mt-3 text-xs leading-5 text-muted-foreground">Level menunjukkan tingkat materi ENO JAPAN. Beberapa pola dapat muncul kembali di level berbeda untuk penggunaan yang lebih luas.</p></section>
+            <section className="rounded-2xl border bg-muted/30 p-5"><SectionTitle icon={ListTree}>STRUKTUR</SectionTitle><ul className="mt-3 list-disc space-y-2 pl-5 leading-7">{detail.structure.map((x, i) => <li key={`${x}-${i}`}><FuriganaDetailText text={x} /></li>)}</ul></section>
+            <section className="rounded-2xl border bg-muted/30 p-5"><SectionTitle icon={Info}>DETAIL</SectionTitle><dl className="mt-3 space-y-3 text-sm"><div className="flex gap-3"><dt className="w-36 shrink-0 text-muted-foreground">Tipe kata</dt><dd className="font-medium"><FuriganaDetailText text={detail.type} /></dd></div><div className="flex gap-3"><dt className="w-36 shrink-0 text-muted-foreground">Jenis kata</dt><dd className="font-medium"><FuriganaDetailText text={detail.kind} /></dd></div><div className="flex gap-3"><dt className="w-36 shrink-0 text-muted-foreground">Tingkat kesopanan</dt><dd className="font-medium"><FuriganaDetailText text={detail.politeness} /></dd></div></dl></section>
+            <section className="rounded-2xl border bg-muted/30 p-5"><SectionTitle icon={Sparkles}>TENTANG</SectionTitle><p className="mt-3 leading-7"><FuriganaDetailText text={detail.about} /></p></section>
+            <section className="rounded-2xl border bg-muted/30 p-5"><SectionTitle icon={MessageCircle}>CONTOH KALIMAT</SectionTitle><p className="mt-2 text-sm text-muted-foreground">Setiap contoh menampilkan kalimat Jepang, furigana di atas kanji, lalu arti Bahasa Indonesia.</p><div className="mt-4 space-y-3">{examples.length ? examples.map((ex, i) => <div key={`${ex.jp ?? "contoh"}-${i}`} className="rounded-xl border bg-background p-4"><div className="flex items-start gap-2"><div className="min-w-0 flex-1"><p lang="ja" className="font-jp text-lg leading-9"><FuriganaText text={ex.jp ?? ""} reading={ex.reading} /></p><p className="mt-2 border-t pt-2 text-sm leading-6">{ex.id ?? "Arti Bahasa Indonesia belum tersedia."}</p></div>{ex.jp && <Button type="button" size="icon" variant="ghost" aria-label="Dengarkan contoh kalimat" onClick={() => speak(ex.jp!)}><Volume2 className="size-4" /></Button>}</div></div>) : <p className="text-sm text-muted-foreground">Belum ada 3 contoh kalimat pada data materi ini.</p>}</div></section>
+            <section className="rounded-2xl border bg-muted/30 p-5"><SectionTitle icon={Lightbulb}>PENJELASAN TENTANG PENGGUNAAN <FuriganaText text={normalizedPattern} /></SectionTitle><p className="mt-3 whitespace-pre-line leading-7"><FuriganaDetailText text={item.explanation_id || detail.usage} /></p>{item.explanation_id && <p className="mt-4 border-t pt-4 text-sm leading-6 text-muted-foreground"><FuriganaDetailText text={detail.usage} /></p>}</section>
+            <div className="grid gap-4 sm:grid-cols-2"><section className="rounded-2xl border bg-muted/30 p-5"><SectionTitle icon={Link2}>SINONIM</SectionTitle>{detail.synonyms.length ? <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6">{detail.synonyms.map((x, i) => <li key={i}><FuriganaDetailText text={x} /></li>)}</ul> : <p className="mt-3 text-sm text-muted-foreground">Tidak ada sinonim utama.</p>}</section><section className="rounded-2xl border bg-muted/30 p-5"><SectionTitle icon={Link2}>ANTONIM</SectionTitle>{detail.antonyms.length ? <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6">{detail.antonyms.map((x, i) => <li key={i}><FuriganaDetailText text={x} /></li>)}</ul> : <p className="mt-3 text-sm text-muted-foreground">Tidak ada antonim langsung.</p>}</section></div>
+            <section className="rounded-2xl border bg-muted/30 p-5"><SectionTitle icon={Link2}>TATA BAHASA TERKAIT</SectionTitle>{detail.related.length ? <div className="mt-3 flex flex-wrap gap-2">{detail.related.map((x, i) => <Badge key={`${x}-${i}`} variant="outline" className="px-3 py-1.5"><FuriganaDetailText text={x} /></Badge>)}</div> : <p className="mt-3 text-sm text-muted-foreground">Belum ada tata bahasa terkait yang terdata.</p>}</section>
+            <section className="rounded-2xl border bg-muted/30 p-5"><SectionTitle icon={Layers3}>ADA DI LEVEL BERAPA SAJA?</SectionTitle><div className="mt-3 flex flex-wrap gap-2">{detail.levels.map(l => <Badge key={l} variant={l === item.level ? "default" : "secondary"}>{l}</Badge>)}</div><p className="mt-3 text-xs leading-5 text-muted-foreground">Level menunjukkan tingkat materi ENO JAPAN. Beberapa pola dapat muncul kembali di level berbeda untuk penggunaan yang lebih luas.</p></section>
           </CardContent>
         </Card>
         <div className="mx-auto max-w-2xl"><Button type="button" variant={learned[item.id] ? "secondary" : "outline"} onClick={() => mutation.mutate(item.id)} disabled={!!learned[item.id]} className="h-11 w-full rounded-xl font-semibold">{learned[item.id] ? <><Check className="mr-2 size-4" />Sudah dipelajari</> : "Tandai sudah dipelajari"}</Button></div>
