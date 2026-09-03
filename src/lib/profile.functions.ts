@@ -68,14 +68,17 @@ export const updateMyAccount = createServerFn({ method: "POST" })
 
     const { error: settingsError } = await context.supabase
       .from("user_settings")
-      .update({
-        daily_kanji_target: data.daily_kanji_target,
-        daily_vocab_target: data.daily_vocab_target,
-        daily_grammar_target: data.daily_grammar_target,
-        furigana_enabled: data.furigana_enabled,
-        daily_reminder: data.daily_reminder,
-      })
-      .eq("user_id", context.userId);
+      .upsert(
+        {
+          user_id: context.userId,
+          daily_kanji_target: data.daily_kanji_target,
+          daily_vocab_target: data.daily_vocab_target,
+          daily_grammar_target: data.daily_grammar_target,
+          furigana_enabled: data.furigana_enabled,
+          daily_reminder: data.daily_reminder,
+        },
+        { onConflict: "user_id" },
+      );
     if (settingsError) throw new Error(`Pengaturan gagal disimpan: ${settingsError.message}`);
 
     return { ok: true };
