@@ -81,21 +81,5 @@ export const updateMyAccount = createServerFn({ method: "POST" })
       );
     if (settingsError) throw new Error(`Pengaturan gagal disimpan: ${settingsError.message}`);
 
-    const { error: learningStatsError } = await context.supabase
-      .from("user_learning_stats")
-      .upsert(
-        {
-          user_id: context.userId,
-          display_name: data.display_name,
-          jlpt_level: data.target_level,
-          ui_language: data.ui_language,
-          avatar_url: profile.avatar_url ?? null,
-        },
-        { onConflict: "user_id" },
-      );
-    if (learningStatsError) {
-      throw new Error(`Data leaderboard gagal disinkronkan: ${learningStatsError.message}`);
-    }
-
     return { ok: true };
   });
