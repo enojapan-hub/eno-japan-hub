@@ -9,12 +9,12 @@ import { Label } from "@/components/ui/label";
 import { BrandMark } from "@/components/layout/BrandMark";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ head: () => ({ meta: [
+  head: () => ({ meta: [
     { title: "Masuk — enonihongo" },
     { name: "description", content: "Masuk atau daftar di enonihongo untuk belajar bahasa Jepang dan menyiapkan JLPT N5–N1." },
     { property: "og:title", content: "Masuk — enonihongo" },
     { property: "og:description", content: "Masuk dengan email atau Google untuk melanjutkan belajar di enonihongo." },
-  ] }) }),
+  ] }),
   component: AuthPage,
 });
 
@@ -71,8 +71,7 @@ function AuthPage() {
       }
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Autentikasi gagal.";
-      setError(message);
-      toast.error(message);
+      setError(message); toast.error(message);
     } finally { setLoading(false); }
   }
 
