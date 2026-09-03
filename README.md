@@ -33,3 +33,4 @@ npm run dev
 Build production menggunakan Vite + TanStack Start + Nitro dan dideploy ke Vercel.
 
 <!-- Deployment smoke-test marker -->
+<!-- Vercel production rebuild: 2026-09-03 -->
