@@ -19,7 +19,7 @@ function looksIndonesian(value: string | null | undefined) {
   if (!value) return false
   const text = value.trim().toLowerCase()
   if (!text) return false
-  const markers = [' yang ', ' dan ', ' untuk ', ' dengan ', ' dari ', ' dalam ', ' adalah ', ' berarti ', ' digunakan ', ' dapat ', ' atau ']
+  const markers = [' yang ', ' dan ', ' untuk ', ' dengan ', ' dari ', ' dalam ', ' adalah ', ' berarti ', ' digunakan ', ' dapat ', ' atau ', ' bisa ', ' tidak ', ' akan ', ' pada ', ' ke ', ' di ']
   return markers.some((marker) => ` ${text} `.includes(marker))
 }
 
@@ -27,52 +27,37 @@ function looksJapanese(value: string) {
   return /[\u3040-\u30ff\u3400-\u9fff]/.test(value)
 }
 
+function decodeGoogleTranslation(payload: unknown) {
+  if (!Array.isArray(payload) || !Array.isArray(payload[0])) return ''
+  return payload[0]
+    .filter((part: unknown) => Array.isArray(part) && typeof part[0] === 'string')
+    .map((part: unknown[]) => part[0] as string)
+    .join('')
+    .trim()
+}
+
 async function translateNaturalIndonesian(text: string, context: string) {
-  const apiKey = process.env.OPENAI_API_KEY
-  const model = process.env.OPENAI_TRANSLATION_MODEL
-  if (!apiKey) throw new Error('Missing OPENAI_API_KEY')
-  if (!model) throw new Error('Missing OPENAI_TRANSLATION_MODEL')
+  // Internet-based translation provider. No OpenAI API key or quota is used.
+  // Google Translate's public web endpoint is used only from the server so the
+  // browser never contacts the provider directly.
+  const url = new URL('https://translate.googleapis.com/translate_a/single')
+  url.searchParams.set('client', 'gtx')
+  url.searchParams.set('sl', 'en')
+  url.searchParams.set('tl', 'id')
+  url.searchParams.set('dt', 't')
+  url.searchParams.set('q', text)
 
-  const response = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      store: false,
-      input: [
-        {
-          role: 'system',
-          content: 'Anda adalah editor materi pembelajaran bahasa Jepang ENO JAPAN. Terjemahkan ke Bahasa Indonesia yang natural, ringkas, jelas, dan mudah dipahami pelajar JLPT. Jangan menerjemahkan kata per kata secara kaku. Pertahankan istilah Jepang, kanji, kana, contoh bahasa Jepang, angka, nama, dan simbol apa adanya jika muncul. Jangan menambahkan informasi yang tidak ada.',
-        },
-        { role: 'user', content: `Konteks materi: ${context}\n\nTeks sumber:\n${text}` },
-      ],
-      text: {
-        format: {
-          type: 'json_schema',
-          name: 'translation',
-          strict: true,
-          schema: {
-            type: 'object',
-            properties: { translation: { type: 'string' } },
-            required: ['translation'],
-            additionalProperties: false,
-          },
-        },
-      },
-    }),
+  const response = await fetch(url, {
+    headers: { Accept: 'application/json', 'User-Agent': 'ENO-JAPAN/1.0' },
+    signal: AbortSignal.timeout(15000),
   })
-
-  if (!response.ok) {
-    const detail = await response.text()
-    throw new Error(`OpenAI ${response.status}: ${detail.slice(0, 500)}`)
-  }
+  if (!response.ok) throw new Error(`Internet translation ${response.status}`)
 
   const data = await response.json()
-  const outputText = data.output?.flatMap((item: any) => item.content ?? [])?.find((item: any) => item.type === 'output_text')?.text
-  if (!outputText) throw new Error('OpenAI returned no output text')
-  const parsed = JSON.parse(outputText)
-  if (!parsed.translation || typeof parsed.translation !== 'string') throw new Error('Invalid translation response')
-  return { translation: parsed.translation.trim(), model }
+  const translation = decodeGoogleTranslation(data)
+  if (!translation) throw new Error(`Internet translation returned no result for ${context}`)
+
+  return { translation, model: 'google-web-translate' }
 }
 
 async function isAdmin(accessToken: string) {
@@ -118,12 +103,7 @@ async function discoverWork(limit: number) {
           const currentTarget = row[fields.target]
           if (typeof sourceText !== 'string' || !sourceText.trim()) continue
 
-          // A target that already differs from the English source is treated as
-          // translated. This also catches short Indonesian words such as
-          // "saya", "sistem", and "penyebab" that the phrase heuristic cannot detect.
-          if (typeof currentTarget === 'string' && currentTarget.trim() && currentTarget.trim() !== sourceText.trim()) {
-            continue
-          }
+          if (typeof currentTarget === 'string' && currentTarget.trim() && currentTarget.trim() !== sourceText.trim()) continue
           if (looksIndonesian(currentTarget)) continue
           if (looksJapanese(currentTarget ?? '') && currentTarget !== sourceText) continue
 
@@ -202,8 +182,6 @@ export async function runTranslationBatch(limit = DEFAULT_LIMIT) {
   const jobs = await discoverWork(Math.min(Math.max(limit, 1), MAX_BATCH_SIZE))
   const results = []
 
-  // Run a small bounded set concurrently so the scheduled job can make useful
-  // progress without serially waiting on every OpenAI request.
   for (let index = 0; index < jobs.length; index += MAX_BATCH_SIZE) {
     const chunk = jobs.slice(index, index + MAX_BATCH_SIZE)
     const chunkResults = await Promise.all(chunk.map(translateOne))
