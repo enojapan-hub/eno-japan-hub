@@ -1,53 +1,147 @@
-import { supabaseAdmin } from '@/integrations/supabase/client.server'
+import { supabaseAdmin } from './supabase.server'
 
-const SOURCE_DEFINITIONS = [
-  { type: 'kanji', table: 'kanji', fields: [{ source: 'meaning_en', target: 'meaning_id' }] },
-  { type: 'vocab', table: 'vocabulary', fields: [{ source: 'meaning_en', target: 'meaning_id' }] },
-  { type: 'grammar', table: 'grammar_points', fields: [
-    { source: 'meaning_en', target: 'meaning_id' },
-    { source: 'explanation_en', target: 'explanation_id' },
-  ] },
-  { type: 'reading', table: 'reading_passages', fields: [{ source: 'translation_en', target: 'translation_id' }] },
-] as const
+type SourceType = 'kanji' | 'vocabulary' | 'grammar' | 'reading'
+
+type TranslationResult = {
+  translation: string
+  provider: 'openai' | 'claude' | 'gemini'
+  model: string
+}
 
 const MAX_ATTEMPTS = 3
 const DEFAULT_LIMIT = 10
 const DISCOVERY_PAGE_SIZE = 50
 const MAX_BATCH_SIZE = 3
 
-function looksIndonesian(value: string | null | undefined) {
-  if (!value) return false
-  const text = value.trim().toLowerCase()
+function looksIndonesian(text: string | null | undefined) {
   if (!text) return false
-  const markers = [' yang ', ' dan ', ' untuk ', ' dengan ', ' dari ', ' dalam ', ' adalah ', ' berarti ', ' digunakan ', ' dapat ', ' atau ']
-  return markers.some((marker) => ` ${text} `.includes(marker))
+  const value = text.trim().toLowerCase()
+  if (!value) return false
+  return /\b(yang|dan|dengan|untuk|dari|dalam|adalah|artinya|kata|contoh|penjelasan|membuat|menjadi|atau|sebagai|karena|jika|ketika|sudah|belum)\b/.test(value)
 }
 
-function looksJapanese(value: string) {
-  return /[\u3040-\u30ff\u3400-\u9fff]/.test(value)
+function looksJapanese(text: string | null | undefined) {
+  if (!text) return false
+  return /[\u3040-\u30ff\u3400-\u9fff]/.test(text)
 }
 
-async function translateNaturalIndonesian(text: string, context: string) {
+function extractJsonTranslation(raw: string) {
+  const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+  try {
+    const parsed = JSON.parse(cleaned)
+    if (typeof parsed.translation === 'string') return parsed.translation.trim()
+  } catch {
+    const match = cleaned.match(/"translation"\s*:\s*"((?:\\.|[^"\\])*)"/s)
+    if (match) {
+      try {
+        return JSON.parse(`"${match[1]}"`).trim()
+      } catch {
+        return match[1].trim()
+      }
+    }
+  }
+  return cleaned
+}
+
+const TRANSLATION_SYSTEM = `Anda adalah editor materi pembelajaran bahasa Jepang ENO JAPAN. Terjemahkan ke Bahasa Indonesia yang natural, ringkas, jelas, dan mudah dipahami pelajar JLPT. Jangan menerjemahkan kata per kata secara kaku. Pertahankan istilah Jepang, kanji, kana, contoh bahasa Jepang, angka, nama, dan simbol apa adanya jika muncul. Jangan menambahkan informasi yang tidak ada. Kembalikan hanya JSON dengan field translation.`
+
+async function translateWithOpenAI(text: string, context: string): Promise<TranslationResult> {
+  const apiKey = process.env.OPENAI_API_KEY
+  const model = process.env.OPENAI_TRANSLATION_MODEL || 'gpt-5.6-luna'
+  if (!apiKey) throw new Error('Missing OPENAI_API_KEY')
+
+  const response = await fetch('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      store: false,
+      input: [
+        { role: 'system', content: TRANSLATION_SYSTEM },
+        { role: 'user', content: `Konteks materi: ${context}\n\nTeks sumber:\n${text}` },
+      ],
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'translation',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: { translation: { type: 'string' } },
+            required: ['translation'],
+            additionalProperties: false,
+          },
+        },
+      },
+    }),
+    signal: AbortSignal.timeout(30000),
+  })
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '')
+    throw new Error(`OpenAI ${response.status}: ${body.slice(0, 500)}`)
+  }
+
+  const data = await response.json()
+  const output = Array.isArray(data.output)
+    ? data.output.flatMap((item: any) => Array.isArray(item?.content) ? item.content : [])
+    : []
+  const raw = output.map((item: any) => item?.text || '').filter(Boolean).join('')
+  const translation = extractJsonTranslation(raw)
+  if (!translation) throw new Error('OpenAI returned empty translation')
+  return { translation, provider: 'openai', model }
+}
+
+async function translateWithClaude(text: string, context: string): Promise<TranslationResult> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  const model = process.env.CLAUDE_TRANSLATION_MODEL || 'claude-3-5-haiku-latest'
+  if (!apiKey) throw new Error('Missing ANTHROPIC_API_KEY')
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 1200,
+      temperature: 0.2,
+      system: TRANSLATION_SYSTEM,
+      messages: [{
+        role: 'user',
+        content: `Konteks materi: ${context}\n\nTeks sumber:\n${text}`,
+      }],
+    }),
+    signal: AbortSignal.timeout(30000),
+  })
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '')
+    throw new Error(`Claude ${response.status}: ${body.slice(0, 500)}`)
+  }
+
+  const data = await response.json()
+  const raw = Array.isArray(data.content)
+    ? data.content.map((item: any) => item?.text || '').filter(Boolean).join('')
+    : ''
+  const translation = extractJsonTranslation(raw)
+  if (!translation) throw new Error('Claude returned empty translation')
+  return { translation, provider: 'claude', model }
+}
+
+async function translateWithGemini(text: string, context: string): Promise<TranslationResult> {
   const apiKey = process.env.GEMINI_API_KEY
   const model = process.env.GEMINI_TRANSLATION_MODEL || 'gemini-2.5-flash-lite'
   if (!apiKey) throw new Error('Missing GEMINI_API_KEY')
 
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': apiKey,
-    },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({
-      systemInstruction: {
-        parts: [{
-          text: 'Anda adalah editor materi pembelajaran bahasa Jepang ENO JAPAN. Terjemahkan ke Bahasa Indonesia yang natural, ringkas, jelas, dan mudah dipahami pelajar JLPT. Jangan menerjemahkan kata per kata secara kaku. Pertahankan istilah Jepang, kanji, kana, contoh bahasa Jepang, angka, nama, dan simbol apa adanya jika muncul. Jangan menambahkan informasi yang tidak ada. Hanya kembalikan JSON sesuai schema.',
-        }],
-      },
-      contents: [{
-        role: 'user',
-        parts: [{ text: `Konteks materi: ${context}\n\nTeks sumber:\n${text}` }],
-      }],
+      systemInstruction: { parts: [{ text: TRANSLATION_SYSTEM }] },
+      contents: [{ role: 'user', parts: [{ text: `Konteks materi: ${context}\n\nTeks sumber:\n${text}` }] }],
       generationConfig: {
         temperature: 0.2,
         responseMimeType: 'application/json',
@@ -62,154 +156,111 @@ async function translateNaturalIndonesian(text: string, context: string) {
   })
 
   if (!response.ok) {
-    const detail = await response.text()
-    throw new Error(`Gemini ${response.status}: ${detail.slice(0, 500)}`)
+    const body = await response.text().catch(() => '')
+    throw new Error(`Gemini ${response.status}: ${body.slice(0, 500)}`)
   }
 
   const data = await response.json()
-  const outputText = data.candidates?.[0]?.content?.parts?.find((part: any) => typeof part.text === 'string')?.text
-  if (!outputText) throw new Error('Gemini returned no output text')
-
-  const parsed = JSON.parse(outputText)
-  if (!parsed.translation || typeof parsed.translation !== 'string') throw new Error('Invalid Gemini translation response')
-  return { translation: parsed.translation.trim(), model }
+  const raw = data?.candidates?.[0]?.content?.parts?.map((part: any) => part?.text || '').filter(Boolean).join('') || ''
+  const translation = extractJsonTranslation(raw)
+  if (!translation) throw new Error('Gemini returned empty translation')
+  return { translation, provider: 'gemini', model }
 }
 
-async function isAdmin(accessToken: string) {
-  const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(accessToken)
-  if (userError || !userData.user) return false
-  const { data, error } = await (supabaseAdmin as any)
-    .from('profiles')
-    .select('role')
-    .eq('id', userData.user.id)
-    .in('role', ['admin', 'teacher'])
-    .limit(1)
-  return !error && !!data?.length
+async function translateNaturalIndonesian(text: string, context: string): Promise<TranslationResult> {
+  const errors: string[] = []
+
+  if (process.env.OPENAI_API_KEY) {
+    try { return await translateWithOpenAI(text, context) } catch (error) { errors.push(error instanceof Error ? error.message : 'OpenAI failed') }
+  }
+
+  if (process.env.ANTHROPIC_API_KEY) {
+    try { return await translateWithClaude(text, context) } catch (error) { errors.push(error instanceof Error ? error.message : 'Claude failed') }
+  }
+
+  if (process.env.GEMINI_API_KEY) {
+    try { return await translateWithGemini(text, context) } catch (error) { errors.push(error instanceof Error ? error.message : 'Gemini failed') }
+  }
+
+  throw new Error(`All translation providers failed: ${errors.join(' | ') || 'No AI provider configured'}`)
+}
+
+async function isAdmin(userId: string) {
+  const { data } = await supabaseAdmin.from('profiles').select('role').eq('id', userId).maybeSingle()
+  return data?.role === 'admin'
 }
 
 export async function getTranslationStats() {
-  const { data, error } = await (supabaseAdmin as any).from('content_translations').select('status')
-  if (error) throw error
-  const stats = { total: data?.length ?? 0, pending: 0, processing: 0, completed: 0, failed: 0 }
-  for (const row of data ?? []) if (row.status in stats) (stats as any)[row.status]++
-  return stats
+  const [kanji, vocabulary, grammar, reading] = await Promise.all([
+    supabaseAdmin.from('kanji').select('id, meaning_en, meaning_id', { count: 'exact', head: true }).eq('is_published', true),
+    supabaseAdmin.from('vocabulary').select('id, meaning_en, meaning_id', { count: 'exact', head: true }).eq('is_published', true),
+    supabaseAdmin.from('grammar_points').select('id, meaning_en, meaning_id', { count: 'exact', head: true }).eq('is_published', true),
+    supabaseAdmin.from('reading_passages').select('id, translation_en, translation_id', { count: 'exact', head: true }).eq('is_published', true),
+  ])
+  return {
+    kanji: kanji.count || 0,
+    vocabulary: vocabulary.count || 0,
+    grammar: grammar.count || 0,
+    reading: reading.count || 0,
+  }
 }
 
-async function discoverWork(limit: number) {
-  const jobs: Array<{ type: string; table: string; id: string; sourceField: string; targetField: string; sourceText: string; context: string }> = []
+async function discoverWork(sourceType: SourceType, limit: number) {
+  const table = sourceType === 'kanji' ? 'kanji' : sourceType === 'vocabulary' ? 'vocabulary' : sourceType === 'grammar' ? 'grammar_points' : 'reading_passages'
+  const sourceColumn = sourceType === 'reading' ? 'translation_en' : 'meaning_en'
+  const targetColumn = sourceType === 'reading' ? 'translation_id' : 'meaning_id'
+  const { data, error } = await supabaseAdmin
+    .from(table)
+    .select(`id, ${sourceColumn}, ${targetColumn}`)
+    .eq('is_published', true)
+    .not(sourceColumn, 'is', null)
+    .limit(Math.min(Math.max(limit, 1), DISCOVERY_PAGE_SIZE))
+  if (error) throw error
+  return (data || []).filter((row: any) => {
+    const source = row[sourceColumn] as string | null
+    const target = row[targetColumn] as string | null
+    if (!source || !source.trim()) return false
+    if (!target || !target.trim()) return true
+    if (target.trim() === source.trim() && !looksJapanese(source)) return true
+    return false
+  })
+}
 
-  for (const definition of SOURCE_DEFINITIONS) {
-    if (jobs.length >= limit) break
+async function translateOne(sourceType: SourceType, row: any): Promise<TranslationResult> {
+  const table = sourceType === 'kanji' ? 'kanji' : sourceType === 'vocabulary' ? 'vocabulary' : sourceType === 'grammar' ? 'grammar_points' : 'reading_passages'
+  const sourceColumn = sourceType === 'reading' ? 'translation_en' : 'meaning_en'
+  const targetColumn = sourceType === 'reading' ? 'translation_id' : 'meaning_id'
+  const context = sourceType === 'kanji' ? 'Kanji JLPT' : sourceType === 'vocabulary' ? 'Kosakata JLPT' : sourceType === 'grammar' ? 'Bunpou JLPT' : 'Dokkai JLPT'
+  const result = await translateNaturalIndonesian(row[sourceColumn], context)
+  const { error } = await supabaseAdmin.from(table).update({ [targetColumn]: result.translation }).eq('id', row.id)
+  if (error) throw error
+  return result
+}
 
-    for (const fields of definition.fields) {
-      if (jobs.length >= limit) break
-
-      for (let offset = 0; jobs.length < limit; offset += DISCOVERY_PAGE_SIZE) {
-        const { data, error } = await (supabaseAdmin as any)
-          .from(definition.table)
-          .select(`id,${fields.source},${fields.target}`)
-          .not(fields.source, 'is', null)
-          .range(offset, offset + DISCOVERY_PAGE_SIZE - 1)
-        if (error || !data?.length) break
-
-        for (const row of data) {
-          if (jobs.length >= limit) break
-          const sourceText = row[fields.source]
-          const currentTarget = row[fields.target]
-          if (typeof sourceText !== 'string' || !sourceText.trim()) continue
-
-          // A target that already differs from the English source is treated as translated.
-          if (typeof currentTarget === 'string' && currentTarget.trim() && currentTarget.trim() !== sourceText.trim()) continue
-          if (looksIndonesian(currentTarget)) continue
-          if (looksJapanese(currentTarget ?? '') && currentTarget !== sourceText) continue
-
-          const { data: existing } = await (supabaseAdmin as any)
-            .from('content_translations')
-            .select('id,status,attempts,source_text')
-            .eq('source_type', definition.type)
-            .eq('source_id', row.id)
-            .eq('source_field', fields.source)
-            .eq('language', 'id')
-            .maybeSingle()
-
-          if (existing?.status === 'completed' && existing.source_text === sourceText) continue
-          if (existing?.attempts >= MAX_ATTEMPTS && existing?.status === 'failed') continue
-
-          await (supabaseAdmin as any).from('content_translations').upsert({
-            id: existing?.id,
-            source_type: definition.type,
-            source_id: row.id,
-            source_field: fields.source,
-            source_text: sourceText,
-            status: 'pending',
-          }, { onConflict: 'source_type,source_id,source_field,language' })
-
-          jobs.push({ type: definition.type, table: definition.table, id: row.id, sourceField: fields.source, targetField: fields.target, sourceText, context: definition.type })
-        }
-
-        if (data.length < DISCOVERY_PAGE_SIZE) break
+export async function runTranslationBatch(sourceType: SourceType, requestedLimit = DEFAULT_LIMIT) {
+  const limit = Math.min(Math.max(requestedLimit, 1), MAX_BATCH_SIZE)
+  const rows = await discoverWork(sourceType, limit)
+  const results: Array<{ id: string; translation: string; provider: string; model: string }> = []
+  for (const row of rows.slice(0, limit)) {
+    let lastError: unknown
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const result = await translateOne(sourceType, row)
+        results.push({ id: row.id, translation: result.translation, provider: result.provider, model: result.model })
+        lastError = undefined
+        break
+      } catch (error) {
+        lastError = error
+        if (attempt < MAX_ATTEMPTS) await new Promise(resolve => setTimeout(resolve, attempt * 500))
       }
     }
+    if (lastError) throw lastError
   }
-  return jobs
+  return { sourceType, requested: limit, processed: results.length, results }
 }
 
-async function translateOne(job: { type: string; table: string; id: string; sourceField: string; targetField: string; sourceText: string; context: string }) {
-  const { data: queueRow } = await (supabaseAdmin as any)
-    .from('content_translations')
-    .select('id,attempts')
-    .eq('source_type', job.type)
-    .eq('source_id', job.id)
-    .eq('source_field', job.sourceField)
-    .eq('language', 'id')
-    .maybeSingle()
-  if (!queueRow) return { ...job, status: 'skipped' }
-
-  const nextAttempts = (queueRow.attempts ?? 0) + 1
-  await (supabaseAdmin as any).from('content_translations').update({ status: 'processing', attempts: nextAttempts, last_error: null }).eq('id', queueRow.id)
-
-  try {
-    const translated = await translateNaturalIndonesian(job.sourceText, job.context)
-    const { error: updateError } = await (supabaseAdmin as any)
-      .from(job.table)
-      .update({ [job.targetField]: translated.translation })
-      .eq('id', job.id)
-    if (updateError) throw updateError
-
-    await (supabaseAdmin as any).from('content_translations').update({
-      translated_text: translated.translation,
-      status: 'completed',
-      model: translated.model,
-      translated_at: new Date().toISOString(),
-      last_error: null,
-    }).eq('id', queueRow.id)
-    return { ...job, status: 'completed' }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    await (supabaseAdmin as any).from('content_translations').update({
-      status: nextAttempts >= MAX_ATTEMPTS ? 'failed' : 'pending',
-      last_error: message.slice(0, 1000),
-    }).eq('id', queueRow.id)
-    return { ...job, status: 'failed', error: message }
-  }
-}
-
-export async function runTranslationBatch(limit = DEFAULT_LIMIT) {
-  const jobs = await discoverWork(Math.min(Math.max(limit, 1), MAX_BATCH_SIZE))
-  const results = []
-
-  // Keep concurrency low to respect free-tier rate limits.
-  for (let index = 0; index < jobs.length; index += MAX_BATCH_SIZE) {
-    const chunk = jobs.slice(index, index + MAX_BATCH_SIZE)
-    const chunkResults = await Promise.all(chunk.map(translateOne))
-    results.push(...chunkResults)
-  }
-
-  return { stats: await getTranslationStats(), results }
-}
-
-export async function authorizeTranslationRequest(request: Request) {
-  const header = request.headers.get('authorization')
-  const token = header?.startsWith('Bearer ') ? header.slice(7) : ''
-  return token ? isAdmin(token) : false
+export async function authorizeTranslationRequest(userId: string) {
+  if (!userId) throw new Error('Unauthorized')
+  if (!(await isAdmin(userId))) throw new Error('Admin access required')
+  return true
 }
