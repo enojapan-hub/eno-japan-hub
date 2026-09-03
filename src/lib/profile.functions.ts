@@ -38,7 +38,7 @@ async function readMemberData(context: { supabase: any; userId: string }) {
   ]);
   if (profileError) throw new Error(profileError.message);
   if (settingsError) throw new Error(settingsError.message);
-  return { profile, settings: settings ?? DEFAULT_SETTINGS, hasSettingsRow: Boolean(settings) };
+  return { profile, settings: settings ?? DEFAULT_SETTINGS };
 }
 
 export const getMyAccount = createServerFn({ method: "GET" })
@@ -53,7 +53,7 @@ export const updateMyAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => settingsSchema.parse(data))
   .handler(async ({ context, data }) => {
-    const { profile, hasSettingsRow } = await readMemberData(context);
+    const { profile } = await readMemberData(context);
     if (!profile) throw new Error("Profil akun belum tersedia. Silakan masuk kembali.");
 
     const { error: profileError } = await context.supabase
@@ -66,22 +66,23 @@ export const updateMyAccount = createServerFn({ method: "POST" })
       .eq("id", context.userId);
     if (profileError) throw new Error(`Profil gagal disimpan: ${profileError.message}`);
 
-    // Jangan melakukan INSERT/UPSERT pada user_settings dari authenticated context.
-    // Jika row belum ada, RLS INSERT dapat menggagalkan seluruh penyimpanan profil.
-    // Row yang sudah ada tetap diperbarui dengan UPDATE milik user sendiri.
-    if (hasSettingsRow) {
-      const { error: settingsError } = await context.supabase
-        .from("user_settings")
-        .update({
+    // user_settings memiliki INSERT policy: auth.uid() = user_id.
+    // Upsert aman karena user_id adalah primary key dan seluruh operasi tetap dibatasi RLS.
+    const { error: settingsError } = await context.supabase
+      .from("user_settings")
+      .upsert(
+        {
+          user_id: context.userId,
           daily_kanji_target: data.daily_kanji_target,
           daily_vocab_target: data.daily_vocab_target,
           daily_grammar_target: data.daily_grammar_target,
           furigana_enabled: data.furigana_enabled,
           daily_reminder: data.daily_reminder,
-        })
-        .eq("user_id", context.userId);
-      if (settingsError) throw new Error(`Pengaturan gagal disimpan: ${settingsError.message}`);
-    }
+        },
+        { onConflict: "user_id" },
+      );
+
+    if (settingsError) throw new Error(`Pengaturan gagal disimpan: ${settingsError.message}`);
 
     return { ok: true };
   });
