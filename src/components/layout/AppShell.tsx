@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Bell, BookOpen, Brain, Home, ListChecks, LogOut, Moon, Settings, Sun, User, ArrowLeft } from "lucide-react";
+import { Bell, BookOpen, Brain, ClipboardCheck, Home, ListChecks, LogOut, Moon, Settings, Sun, User, ArrowLeft } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { signOutCleanly } from "@/lib/auth-actions";
@@ -10,8 +10,9 @@ import { BrandMark } from "@/components/layout/BrandMark";
 const navItems = [
   { to: "/dashboard", label: "Beranda", icon: Home },
   { to: "/belajar", label: "Belajar", icon: BookOpen },
-  { to: "/quiz", label: "Simulasi", icon: ListChecks },
-  { to: "/profil", label: "Akun", icon: User },
+  { to: "/quiz", label: "Quiz", icon: ClipboardCheck },
+  { to: "/simulasi", label: "Simulasi", icon: ListChecks },
+  { to: "/profil", label: "Profil", icon: User },
 ] as const;
 
 type Props = { title: string; description?: string; backTo?: string; backLabel?: string; compact?: boolean; children: ReactNode };
@@ -47,12 +48,12 @@ export function AppShell({ title, description, backTo, backLabel = "Kembali", co
     </main>
 
     <nav aria-label="Navigasi bawah" className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/90 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgb(15_23_42_/_0.06)] backdrop-blur-2xl md:hidden">
-      <ul className="mx-auto flex h-[4.35rem] w-full max-w-lg items-center px-2">
+      <ul className="mx-auto flex h-[4.35rem] w-full max-w-lg items-center px-1">
         {navItems.map(item => {
           const active = isActive(item.to); const Icon = item.icon;
           return <li key={item.to} className="h-full flex-1">
             <Link to={item.to} aria-current={active ? "page" : undefined} className="group flex h-full w-full items-center justify-center">
-              <span className={cn("flex min-w-[3.7rem] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-1.5 transition-all duration-200", active ? "bg-primary/10 text-primary" : "text-muted-foreground group-hover:bg-muted/60 group-hover:text-foreground")}>
+              <span className={cn("flex min-w-[3.45rem] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 transition-all duration-200", active ? "bg-primary/10 text-primary" : "text-muted-foreground group-hover:bg-muted/60 group-hover:text-foreground")}>
                 <Icon className={cn("size-[20px] transition-transform duration-200", active && "-translate-y-px")} strokeWidth={active ? 2.4 : 1.9} />
                 <span className={cn("text-[10px] leading-3 tracking-[-0.01em]", active ? "font-semibold" : "font-medium")}>{item.label}</span>
               </span>
