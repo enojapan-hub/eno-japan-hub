@@ -110,32 +110,30 @@ function ProfilePage() {
 
   return <AppShell title="Profil" description="Profil dan kemajuan belajar kamu.">
     <form onSubmit={submit} className="space-y-5" noValidate>
-      <section className="relative flex min-h-[400px] w-full flex-col justify-end overflow-hidden rounded-[36px] bg-gradient-to-tr from-[#2f6b5d] via-[#3f7069] to-[#526985] p-3 shadow-2xl">
-        <div className="relative rounded-[28px] bg-gradient-to-br from-[#1d5147] via-[#286157] to-[#38556f] p-5 pt-14 text-white shadow-lg">
-          <div className="absolute -top-11 left-5 size-[88px] overflow-hidden rounded-full border-[3px] border-white/90 bg-white/15 shadow-lg">
-            {avatar ? <img src={avatar} alt="Foto profil" className="size-full object-cover" /> : <div className="grid size-full place-items-center bg-white/10 text-3xl font-bold">{name.slice(0, 1).toUpperCase()}</div>}
+      <section className="relative min-h-[400px] w-full overflow-hidden rounded-[36px] bg-gradient-to-tr from-[#2f6b5d] via-[#3f7069] to-[#526985] p-5 pt-14 text-white shadow-2xl">
+        <div className="absolute -top-11 left-5 size-[88px] overflow-hidden rounded-full border-[3px] border-white/90 bg-white/15 shadow-lg">
+          {avatar ? <img src={avatar} alt="Foto profil" className="size-full object-cover" /> : <div className="grid size-full place-items-center bg-white/10 text-3xl font-bold">{name.slice(0, 1).toUpperCase()}</div>}
+        </div>
+        <div className="absolute right-4 top-4 flex gap-1.5">
+          <Button type="button" variant="ghost" size="icon" className="size-9 rounded-full text-white/75 hover:bg-white/10 hover:text-white" onClick={() => void shareProfile()} aria-label="Bagikan profil"><Share2 className="size-4" /></Button>
+          <Button type="button" variant="ghost" size="icon" className="size-9 rounded-full text-white/75 hover:bg-white/10 hover:text-white" onClick={() => void navigate({ to: "/pengaturan" })} aria-label="Pengaturan"><Settings className="size-4" /></Button>
+        </div>
+        <div>
+          <h2 className="pr-20 text-xl font-bold tracking-tight sm:text-2xl">{name}</h2>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-emerald-200/20 px-3 py-1 text-xs font-semibold text-emerald-100">JLPT {form.target_level}</span>
+            <span className="rounded-full bg-amber-200/20 px-3 py-1 text-xs font-semibold text-amber-100">{points.toLocaleString("id-ID")} XP</span>
           </div>
-          <div className="absolute right-4 top-4 flex gap-1.5">
-            <Button type="button" variant="ghost" size="icon" className="size-9 rounded-full text-white/75 hover:bg-white/10 hover:text-white" onClick={() => void shareProfile()} aria-label="Bagikan profil"><Share2 className="size-4" /></Button>
-            <Button type="button" variant="ghost" size="icon" className="size-9 rounded-full text-white/75 hover:bg-white/10 hover:text-white" onClick={() => void navigate({ to: "/pengaturan" })} aria-label="Pengaturan"><Settings className="size-4" /></Button>
-          </div>
-          <div>
-            <h2 className="pr-20 text-xl font-bold tracking-tight sm:text-2xl">{name}</h2>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-emerald-200/20 px-3 py-1 text-xs font-semibold text-emerald-100">JLPT {form.target_level}</span>
-              <span className="rounded-full bg-amber-200/20 px-3 py-1 text-xs font-semibold text-amber-100">{points.toLocaleString("id-ID")} XP</span>
-            </div>
-          </div>
-          <p className="mt-3 text-sm leading-relaxed text-white/70">Terus belajar, satu langkah demi satu langkah.</p>
-          <div className="mt-5 flex items-center gap-3">
-            <Button type="button" className="flex-1 rounded-full bg-white/95 py-3 font-medium text-[#24564d] hover:bg-white" onClick={() => setEditingProfile((value) => !value)}><Camera className="mr-2 size-4" /> {editingProfile ? "Tutup edit" : "Edit profil"}</Button>
-            <Button type="button" variant="outline" className="size-12 rounded-full border-white/20 bg-white/10 text-white hover:bg-white/15" onClick={() => void signOut()} aria-label="Keluar"><LogOut className="size-4" /></Button>
-          </div>
-          <div className="mt-5 grid grid-cols-3 border-t border-white/15 pt-4">
-            <div className="text-center"><p className="text-[10px] text-white/50">XP</p><p className="mt-1 text-sm font-bold">{points.toLocaleString("id-ID")}</p></div>
-            <div className="border-x border-white/15 text-center"><p className="text-[10px] text-white/50">Materi</p><p className="mt-1 text-sm font-bold">{totalLearned}</p></div>
-            <div className="text-center"><p className="text-[10px] text-white/50">Hari belajar</p><p className="mt-1 text-sm font-bold">{daysLearning}</p></div>
-          </div>
+        </div>
+        <p className="mt-3 text-sm leading-relaxed text-white/70">Terus belajar, satu langkah demi satu langkah.</p>
+        <div className="mt-5 flex items-center gap-3">
+          <Button type="button" className="flex-1 rounded-full bg-white/95 py-3 font-medium text-[#24564d] hover:bg-white" onClick={() => setEditingProfile((value) => !value)}><Camera className="mr-2 size-4" /> {editingProfile ? "Tutup edit" : "Edit profil"}</Button>
+          <Button type="button" variant="outline" className="size-12 rounded-full border-white/20 bg-white/10 text-white hover:bg-white/15" onClick={() => void signOut()} aria-label="Keluar"><LogOut className="size-4" /></Button>
+        </div>
+        <div className="mt-5 grid grid-cols-3 border-t border-white/15 pt-4">
+          <div className="text-center"><p className="text-[10px] text-white/50">XP</p><p className="mt-1 text-sm font-bold">{points.toLocaleString("id-ID")}</p></div>
+          <div className="border-x border-white/15 text-center"><p className="text-[10px] text-white/50">Materi</p><p className="mt-1 text-sm font-bold">{totalLearned}</p></div>
+          <div className="text-center"><p className="text-[10px] text-white/50">Hari belajar</p><p className="mt-1 text-sm font-bold">{daysLearning}</p></div>
         </div>
       </section>
 
