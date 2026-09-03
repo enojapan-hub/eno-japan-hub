@@ -12,7 +12,14 @@ export function asExamples(value: unknown): Example[] {
     if (typeof item === "string") return { jp: item };
     if (!item || typeof item !== "object") return {};
     const x = item as Record<string, unknown>;
-    return { jp: String(x.jp ?? x.japanese ?? x.sentence ?? x.example ?? "") || undefined, id: String(x.id ?? x.indonesian ?? x.translation ?? x.translation_id ?? "") || undefined, reading: String(x.reading ?? x.hiragana ?? "") || undefined };
+    const jp = x.jp ?? x.japanese ?? x.ja ?? x.sentence ?? x.example;
+    const id = x.id ?? x.indonesian ?? x.idn ?? x.translation_id;
+    const reading = x.reading ?? x.hiragana;
+    return {
+      jp: typeof jp === "string" && jp.trim() ? jp : undefined,
+      id: typeof id === "string" && id.trim() ? id : undefined,
+      reading: typeof reading === "string" && reading.trim() ? reading : undefined,
+    };
   }).filter((x) => x.jp || x.id);
 }
 function must<T>(res: { data: T | null; error: { message: string } | null }): T { if (res.error) throw new Error(res.error.message); return (res.data ?? []) as T; }
