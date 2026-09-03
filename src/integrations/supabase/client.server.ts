@@ -1,12 +1,10 @@
 // Server-side Supabase client.
-// Prefer the service-role key when configured. In environments where only the
-// publishable key is available, fall back to it so authenticated read-only
-// server routes do not crash just because SERVICE_ROLE_KEY is absent.
+// Privileged server operations must use a server-only secret key.
+// Never fall back to the public publishable key for admin/database operations.
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from './types'
 
 const FALLBACK_SUPABASE_URL = 'https://upxtqsvgppvqpbrjoitz.supabase.co'
-const FALLBACK_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_lOFCqoqCndJ5DE_3S4RKjQ_28F6nK6u'
 
 function isNewSupabaseApiKey(value: string): boolean {
   return value.startsWith('sb_publishable_') || value.startsWith('sb_secret_')
@@ -26,26 +24,26 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   }
 }
 
-function createSupabaseAdminClient() {
+function createSupabaseServerClient() {
   const url = process.env['SUPABASE_URL'] || FALLBACK_SUPABASE_URL
-  const serviceRoleKey = process.env['SUPABASE_SERVICE_ROLE_KEY']
-  const publishableKey = process.env['SUPABASE_PUBLISHABLE_KEY'] || FALLBACK_SUPABASE_PUBLISHABLE_KEY
-  const key = serviceRoleKey || publishableKey
+  const serviceRoleKey = process.env['SUPABASE_SERVICE_ROLE_KEY'] || process.env['SUPABASE_SECRET_KEY']
 
-  if (!url || !key) throw new Error('Supabase configuration is unavailable')
-  if (!serviceRoleKey) console.warn('[Supabase] SERVICE_ROLE_KEY is not configured; using publishable key fallback')
+  if (!url) throw new Error('Missing SUPABASE_URL')
+  if (!serviceRoleKey) {
+    throw new Error('Missing server-only Supabase secret key (SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY)')
+  }
 
-  return createClient<Database>(url, key, {
-    global: { fetch: createSupabaseFetch(key) },
+  return createClient<Database>(url, serviceRoleKey, {
+    global: { fetch: createSupabaseFetch(serviceRoleKey) },
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
   })
 }
 
-let _supabaseAdmin: ReturnType<typeof createSupabaseAdminClient> | undefined
+let _supabaseServer: ReturnType<typeof createSupabaseServerClient> | undefined
 
-export const supabaseAdmin = new Proxy({} as ReturnType<typeof createSupabaseAdminClient>, {
+export const supabaseAdmin = new Proxy({} as ReturnType<typeof createSupabaseServerClient>, {
   get(_, prop, receiver) {
-    if (!_supabaseAdmin) _supabaseAdmin = createSupabaseAdminClient()
-    return Reflect.get(_supabaseAdmin, prop, receiver)
+    if (!_supabaseServer) _supabaseServer = createSupabaseServerClient()
+    return Reflect.get(_supabaseServer, prop, receiver)
   },
 })
