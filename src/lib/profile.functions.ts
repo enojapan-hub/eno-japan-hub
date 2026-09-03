@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const settingsSchema = z.object({
   display_name: z.string().trim().min(2).max(60),
   target_level: z.enum(["N5", "N4", "N3", "N2", "N1"]),
-  ui_language: z.literal("id"),
+  ui_language: z.enum(["id", "en", "ja"]),
   daily_kanji_target: z.number().int().min(0).max(100),
   daily_vocab_target: z.number().int().min(0).max(200),
   daily_grammar_target: z.number().int().min(0).max(100),
@@ -41,7 +41,6 @@ async function readMemberData(context: { supabase: any; userId: string }) {
   return { profile, settings: settings ?? DEFAULT_SETTINGS };
 }
 
-/** Ambil profil + pengaturan pengguna yang sedang masuk tanpa melakukan INSERT dari browser/server ber-RLS. */
 export const getMyAccount = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -50,19 +49,22 @@ export const getMyAccount = createServerFn({ method: "GET" })
     return { profile, settings, roles: profile.role ? [profile.role] : ["student"] };
   });
 
-/** Simpan profil + target harian. */
 export const updateMyAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => settingsSchema.parse(data))
   .handler(async ({ context, data }) => {
     const { profile } = await readMemberData(context);
-    if (!profile) throw new Error("Profil akun belum tersedia. Silakan masuk kembali dengan Google.");
+    if (!profile) throw new Error("Profil akun belum tersedia. Silakan masuk kembali.");
 
     const { error: profileError } = await context.supabase
       .from("profiles")
-      .update({ display_name: data.display_name, target_level: data.target_level, ui_language: "id" })
+      .update({
+        display_name: data.display_name,
+        target_level: data.target_level,
+        ui_language: data.ui_language,
+      })
       .eq("id", context.userId);
-    if (profileError) throw new Error(profileError.message);
+    if (profileError) throw new Error(`Profil gagal disimpan: ${profileError.message}`);
 
     const { error: settingsError } = await context.supabase
       .from("user_settings")
@@ -74,6 +76,7 @@ export const updateMyAccount = createServerFn({ method: "POST" })
         daily_reminder: data.daily_reminder,
       })
       .eq("user_id", context.userId);
-    if (settingsError) throw new Error(settingsError.message);
+    if (settingsError) throw new Error(`Pengaturan gagal disimpan: ${settingsError.message}`);
+
     return { ok: true };
   });
