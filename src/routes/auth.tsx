@@ -84,92 +84,55 @@ function AuthPage() {
     }
   }
 
-  if (checking) return <div className="grid min-h-screen place-items-center bg-[#f4eee7]"><Loader2 aria-label="Memuat" className="size-5 animate-spin text-[#9b1c31]" /></div>;
+  if (checking) return <div className="grid min-h-screen place-items-center bg-[#f7f4ef]"><Loader2 aria-label="Memuat" className="size-5 animate-spin text-[#8f1d2c]" /></div>;
 
   const isLogin = mode === "login";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f4eee7] px-0 py-0 sm:px-5 sm:py-8">
-      <section className="relative flex min-h-screen w-full max-w-[380px] flex-col overflow-hidden bg-white shadow-2xl shadow-[#7f172b]/15 sm:min-h-[720px] sm:rounded-[36px]">
+    <main className="flex min-h-screen items-center justify-center bg-[#f7f4ef] px-0 py-0 sm:px-5 sm:py-8">
+      <section className="relative flex min-h-screen w-full max-w-[380px] flex-col overflow-hidden bg-[#fffaf5] shadow-2xl shadow-[#8f1d2c]/20 sm:min-h-[720px] sm:rounded-[36px]">
         <header className="relative h-[220px] shrink-0 overflow-hidden bg-[#8f1d2c] px-6 pt-9 text-white">
-          <div aria-hidden="true" className="absolute -right-20 -top-24 size-64 rounded-full border-[34px] border-white/10" />
-          <div aria-hidden="true" className="absolute -left-24 top-24 size-52 rounded-full border-[26px] border-white/10" />
-          <div aria-hidden="true" className="absolute right-8 bottom-[-80px] size-44 rounded-full bg-[#f4eee7]/10" />
-          <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-[#a9233b]/35 via-transparent to-[#6f1426]/35" />
-
+          <div aria-hidden="true" className="absolute -right-20 -top-24 size-64 rounded-full border-[34px] border-[#f7d9d5]/20" />
+          <div aria-hidden="true" className="absolute -left-24 top-24 size-52 rounded-full border-[26px] border-[#f7d9d5]/20" />
+          <div aria-hidden="true" className="absolute right-8 bottom-[-80px] size-44 rounded-full bg-[#f7d9d5]/10" />
+          <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-[#b52b45]/35 via-transparent to-[#6f1426]/35" />
           <div className="relative z-10 flex justify-center">
             <Link to="/" aria-label="ENO NIHONGO">
-              <span className="block rounded-2xl bg-white p-2.5 shadow-lg shadow-black/10">
+              <span className="block rounded-2xl bg-[#fffaf5] p-2.5 shadow-lg shadow-[#4a0c18]/20">
                 <BrandMark size="lg" />
               </span>
             </Link>
           </div>
           <div className="relative z-10 mt-5 text-center">
-            <p className="font-jp text-xs font-medium tracking-[0.28em] text-white/80">日本語を、もっと楽しく。</p>
+            <p className="font-jp text-xs font-medium tracking-[0.28em] text-[#fbe8e5]">日本語を、もっと楽しく。</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight">ENO NIHONGO</h1>
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col bg-[#fffdfa] px-6 pb-6 pt-7 sm:px-7">
+        <div className="flex flex-1 flex-col bg-[#fffaf5] px-6 pb-6 pt-7 sm:px-7">
           <div className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9b1c31]">{isLogin ? "Selamat datang" : "Buat akun"}</p>
-            <h2 className="mt-1.5 text-[1.45rem] font-bold leading-tight tracking-tight text-[#26201f]">
-              {isLogin ? "Masuk ke akunmu" : "Mulai belajar bersama kami"}
-            </h2>
-            <p className="mt-1.5 text-xs leading-5 text-[#756b68]">
-              {isLogin ? "Lanjutkan belajar bahasa Jepang dan capai target JLPT-mu." : "Simpan progres belajar dan bangun kebiasaan bahasa Jepangmu."}
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8f1d2c]">{isLogin ? "Selamat datang" : "Buat akun"}</p>
+            <h2 className="mt-1.5 text-[1.45rem] font-bold leading-tight tracking-tight text-[#3b2023]">{isLogin ? "Masuk ke akunmu" : "Mulai belajar bersama kami"}</h2>
+            <p className="mt-1.5 text-xs leading-5 text-[#735f5c]">{isLogin ? "Lanjutkan belajar bahasa Jepang dan capai target JLPT-mu." : "Simpan progres belajar dan bangun kebiasaan bahasa Jepangmu."}</p>
           </div>
 
           <form onSubmit={submitEmailAuth} className="space-y-3.5" noValidate>
             <div className="space-y-1.5">
-              <Label htmlFor="auth-email" className="text-xs font-semibold text-[#443b38]">Email</Label>
-              <div className="relative">
-                <Mail aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9a8d89]" />
-                <Input id="auth-email" type="email" className="h-11 rounded-xl border-[#e5dcd6] bg-white pl-9 text-sm shadow-sm focus-visible:ring-[#9b1c31]" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required />
-              </div>
+              <Label htmlFor="auth-email" className="text-xs font-semibold text-[#4b3032]">Email</Label>
+              <div className="relative"><Mail aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#a48b87]" /><Input id="auth-email" type="email" className="h-11 rounded-xl border-[#eadbd5] bg-white pl-9 text-sm shadow-sm focus-visible:ring-[#8f1d2c]" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required /></div>
             </div>
-
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="auth-password" className="text-xs font-semibold text-[#443b38]">Kata sandi</Label>
-                {isLogin && <Link to="/reset-password" className="text-[11px] font-medium text-[#9b1c31] underline underline-offset-4">Lupa kata sandi?</Link>}
-              </div>
-              <div className="relative">
-                <Lock aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9a8d89]" />
-                <Input id="auth-password" type="password" className="h-11 rounded-xl border-[#e5dcd6] bg-white pl-9 text-sm shadow-sm focus-visible:ring-[#9b1c31]" value={password} onChange={e => setPassword(e.target.value)} autoComplete={isLogin ? "current-password" : "new-password"} required />
-              </div>
+              <div className="flex items-center justify-between gap-3"><Label htmlFor="auth-password" className="text-xs font-semibold text-[#4b3032]">Kata sandi</Label>{isLogin && <Link to="/reset-password" className="text-[11px] font-medium text-[#8f1d2c] underline underline-offset-4">Lupa kata sandi?</Link>}</div>
+              <div className="relative"><Lock aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#a48b87]" /><Input id="auth-password" type="password" className="h-11 rounded-xl border-[#eadbd5] bg-white pl-9 text-sm shadow-sm focus-visible:ring-[#8f1d2c]" value={password} onChange={e => setPassword(e.target.value)} autoComplete={isLogin ? "current-password" : "new-password"} required /></div>
             </div>
-
             {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">{error}</p>}
-
-            <Button type="submit" className="h-11 w-full rounded-xl bg-[#9b1c31] text-sm font-semibold text-white shadow-md shadow-[#9b1c31]/20 hover:bg-[#83182a]" disabled={loading}>
-              {loading && <Loader2 aria-hidden className="size-4 animate-spin" />}
-              {loading ? "Memproses…" : isLogin ? "Masuk" : "Daftar"}
-              {!loading && <ArrowRight aria-hidden className="size-4" />}
-            </Button>
+            <Button type="submit" className="h-11 w-full rounded-xl bg-[#8f1d2c] text-sm font-semibold text-white shadow-md shadow-[#8f1d2c]/20 hover:bg-[#741624]" disabled={loading}>{loading && <Loader2 aria-hidden className="size-4 animate-spin" />}{loading ? "Memproses…" : isLogin ? "Masuk" : "Daftar"}{!loading && <ArrowRight aria-hidden className="size-4" />}</Button>
           </form>
 
-          <div className="my-4 flex items-center gap-3">
-            <span className="h-px flex-1 bg-[#e8dfda]" />
-            <span className="text-[10px] font-medium text-[#a0928d]">atau</span>
-            <span className="h-px flex-1 bg-[#e8dfda]" />
-          </div>
+          <div className="my-4 flex items-center gap-3"><span className="h-px flex-1 bg-[#eadbd5]" /><span className="text-[10px] font-medium text-[#a48b87]">atau</span><span className="h-px flex-1 bg-[#eadbd5]" /></div>
+          <Button type="button" variant="outline" className="h-11 w-full rounded-xl border-[#eadbd5] bg-white text-sm font-medium text-[#4b3032] shadow-sm hover:bg-[#f8eee9]" onClick={signInWithGoogle} disabled={loading}><span className="grid size-5 place-items-center rounded-full bg-[#fbe8e5] text-[11px] font-bold text-[#8f1d2c]">G</span>Lanjutkan dengan Google</Button>
 
-          <Button type="button" variant="outline" className="h-11 w-full rounded-xl border-[#e5dcd6] bg-white text-sm font-medium text-[#443b38] shadow-sm hover:bg-[#f8f2ed]" onClick={signInWithGoogle} disabled={loading}>
-            <span className="grid size-5 place-items-center rounded-full bg-[#f4eee7] text-[11px] font-bold text-[#9b1c31]">G</span>
-            Lanjutkan dengan Google
-          </Button>
-
-          <div className="mt-auto pt-5 text-center">
-            <p className="text-xs text-[#756b68]">
-              {isLogin ? "Belum punya akun? " : "Sudah punya akun? "}
-              <button type="button" className="font-semibold text-[#9b1c31] underline underline-offset-4" onClick={() => { setMode(isLogin ? "signup" : "login"); setError(null); }}>
-                {isLogin ? "Daftar sekarang" : "Masuk"}
-              </button>
-            </p>
-            <p className="mt-3 text-[10px] text-[#b0a39e]">© {new Date().getFullYear()} ENO NIHONGO</p>
-          </div>
+          <div className="mt-auto pt-5 text-center"><p className="text-xs text-[#735f5c]">{isLogin ? "Belum punya akun? " : "Sudah punya akun? "}<button type="button" className="font-semibold text-[#8f1d2c] underline underline-offset-4" onClick={() => { setMode(isLogin ? "signup" : "login"); setError(null); }}>{isLogin ? "Daftar sekarang" : "Masuk"}</button></p><p className="mt-3 text-[10px] text-[#b49e99]">© {new Date().getFullYear()} ENO NIHONGO</p></div>
         </div>
       </section>
     </main>
