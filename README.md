@@ -1,4 +1,4 @@
-# ENO JAPAN
+# ENONIHONGO
 
 Platform belajar bahasa Jepang dan persiapan JLPT N5-N1.
 
