@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarDays, Camera, Check, Flame, Gift, Globe2, LogOut, Settings, Share2, Trophy } from "lucide-react";
+import { CalendarDays, Camera, ChevronDown, Flame, Gift, Globe2, LogOut, Settings, Share2, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,7 +82,7 @@ function ProfilePage() {
     mutation.mutate({ ...form, display_name: form.display_name.trim() });
   }
 
-  if (isLoading || !form) return <AppShell title="Profil"><div className="space-y-4"><Skeleton className="h-[390px] w-full rounded-[36px]" /><Skeleton className="h-52 w-full rounded-3xl" /></div></AppShell>;
+  if (isLoading || !form) return <AppShell title="Profil"><div className="mx-auto w-full max-w-md space-y-4"><Skeleton className="h-[620px] w-full rounded-[30px]" /><Skeleton className="h-52 w-full rounded-3xl" /></div></AppShell>;
   if (isError) return <AppShell title="Profil"><Card><CardHeader><CardTitle>Profil tidak dapat dimuat</CardTitle><CardDescription>{(error as Error).message}</CardDescription></CardHeader><CardContent><Button variant="outline" onClick={() => void refetch()}>Coba lagi</Button></CardContent></Card></AppShell>;
 
   const metadata = data.user.user_metadata ?? {};
@@ -109,43 +109,58 @@ function ProfilePage() {
   };
 
   return <AppShell title="Profil" description="Profil dan kemajuan belajar kamu.">
-    <form onSubmit={submit} className="space-y-5" noValidate>
-      <section className="relative min-h-[400px] w-full overflow-hidden rounded-[36px] bg-gradient-to-tr from-[#2f6b5d] via-[#3f7069] to-[#526985] p-5 pt-14 text-white shadow-2xl">
-        <div className="absolute -top-11 left-5 size-[88px] overflow-hidden rounded-full border-[3px] border-white/90 bg-white/15 shadow-lg">
-          {avatar ? <img src={avatar} alt="Foto profil" className="size-full object-cover" /> : <div className="grid size-full place-items-center bg-white/10 text-3xl font-bold">{name.slice(0, 1).toUpperCase()}</div>}
+    <form onSubmit={submit} className="mx-auto w-full max-w-md space-y-5" noValidate>
+      <section className="relative min-h-[620px] w-full overflow-hidden rounded-[30px] border border-border/70 bg-[#123b34] shadow-2xl sm:min-h-[680px]">
+        <div className="absolute inset-x-0 top-0 h-[58%] overflow-hidden bg-gradient-to-br from-[#0f4c42] via-[#176b5c] to-[#2f5b91]">
+          {avatar && <img src={avatar} alt="Foto profil" className="absolute inset-0 size-full object-cover opacity-75 mix-blend-screen" />}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-[#123b34]/75" />
+          <div className="absolute -right-12 top-10 size-44 rounded-full border border-white/10 bg-white/5 blur-[1px]" />
+          <div className="absolute -left-16 top-32 size-52 rounded-full border border-white/10 bg-emerald-200/5" />
         </div>
-        <div className="absolute right-4 top-4 flex gap-1.5">
-          <Button type="button" variant="ghost" size="icon" className="size-9 rounded-full text-white/75 hover:bg-white/10 hover:text-white" onClick={() => void shareProfile()} aria-label="Bagikan profil"><Share2 className="size-4" /></Button>
-          <Button type="button" variant="ghost" size="icon" className="size-9 rounded-full text-white/75 hover:bg-white/10 hover:text-white" onClick={() => void navigate({ to: "/pengaturan" })} aria-label="Pengaturan"><Settings className="size-4" /></Button>
-        </div>
-        <div>
-          <h2 className="pr-20 text-xl font-bold tracking-tight sm:text-2xl">{name}</h2>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-emerald-200/20 px-3 py-1 text-xs font-semibold text-emerald-100">JLPT {form.target_level}</span>
-            <span className="rounded-full bg-amber-200/20 px-3 py-1 text-xs font-semibold text-amber-100">{points.toLocaleString("id-ID")} XP</span>
+
+        <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-4 text-white">
+          <Button type="button" variant="ghost" size="icon" className="size-9 rounded-full bg-black/10 text-white hover:bg-white/10" onClick={() => void navigate({ to: "/" })} aria-label="Kembali"><ChevronDown className="size-5 rotate-90" /></Button>
+          <span className="text-sm font-semibold tracking-wide">Profile</span>
+          <Button type="button" variant="ghost" size="icon" className="size-9 rounded-full bg-black/10 text-white hover:bg-white/10" onClick={() => void navigate({ to: "/pengaturan" })} aria-label="Pengaturan"><Settings className="size-4" /></Button>
+        </header>
+
+        <div className="absolute inset-x-0 bottom-0 z-20 min-h-[48%] rounded-t-[32px] bg-gradient-to-b from-background via-background to-muted/80 px-5 pb-5 pt-16 text-foreground shadow-[0_-18px_45px_rgba(0,0,0,0.16)] sm:px-7 sm:pt-16">
+          <div className="absolute -top-11 left-5 size-24 overflow-hidden rounded-full border-4 border-background bg-muted shadow-xl sm:left-7 sm:size-28">
+            {avatar ? <img src={avatar} alt="Foto profil" className="size-full object-cover" /> : <div className="grid size-full place-items-center bg-gradient-to-br from-primary/20 to-primary/5 text-3xl font-bold text-primary">{name.slice(0, 1).toUpperCase()}</div>}
           </div>
-        </div>
-        <p className="mt-3 text-sm leading-relaxed text-white/70">Terus belajar, satu langkah demi satu langkah.</p>
-        <div className="mt-5 flex items-center gap-3">
-          <Button type="button" className="flex-1 rounded-full bg-white/95 py-3 font-medium text-[#24564d] hover:bg-white" onClick={() => setEditingProfile((value) => !value)}><Camera className="mr-2 size-4" /> {editingProfile ? "Tutup edit" : "Edit profil"}</Button>
-          <Button type="button" variant="outline" className="size-12 rounded-full border-white/20 bg-white/10 text-white hover:bg-white/15" onClick={() => void signOut()} aria-label="Keluar"><LogOut className="size-4" /></Button>
-        </div>
-        <div className="mt-5 grid grid-cols-3 border-t border-white/15 pt-4">
-          <div className="text-center"><p className="text-[10px] text-white/50">XP</p><p className="mt-1 text-sm font-bold">{points.toLocaleString("id-ID")}</p></div>
-          <div className="border-x border-white/15 text-center"><p className="text-[10px] text-white/50">Materi</p><p className="mt-1 text-sm font-bold">{totalLearned}</p></div>
-          <div className="text-center"><p className="text-[10px] text-white/50">Hari belajar</p><p className="mt-1 text-sm font-bold">{daysLearning}</p></div>
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h2 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">{name}</h2>
+              <p className="mt-1 text-xs text-muted-foreground">Pelajar Bahasa Jepang · JLPT {form.target_level}</p>
+            </div>
+            <span className="shrink-0 rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-[10px] font-bold text-primary">N5–N1</span>
+          </div>
+
+          <div className="mt-6 grid grid-cols-3 divide-x rounded-2xl border bg-background/70 py-3 shadow-sm">
+            <div className="text-center"><p className="text-[10px] text-muted-foreground">XP</p><p className="mt-1 text-base font-bold">{points.toLocaleString("id-ID")}</p></div>
+            <div className="text-center"><p className="text-[10px] text-muted-foreground">Materi</p><p className="mt-1 text-base font-bold">{totalLearned.toLocaleString("id-ID")}</p></div>
+            <div className="text-center"><p className="text-[10px] text-muted-foreground">Streak</p><p className="mt-1 text-base font-bold">{streak} hari</p></div>
+          </div>
+
+          <Button type="button" className="mt-4 h-11 w-full rounded-2xl bg-primary font-semibold shadow-md hover:bg-primary/90" onClick={() => setEditingProfile((value) => !value)}><Camera className="mr-2 size-4" />{editingProfile ? "Tutup edit profil" : "Edit profil"}</Button>
+
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <Button type="button" variant="outline" size="icon" className="size-9 rounded-full" onClick={() => void shareProfile()} aria-label="Bagikan profil"><Share2 className="size-4" /></Button>
+            <Button type="button" variant="outline" size="icon" className="size-9 rounded-full" onClick={() => void navigate({ to: "/pengaturan" })} aria-label="Pengaturan"><Settings className="size-4" /></Button>
+            <Button type="button" variant="outline" size="icon" className="size-9 rounded-full" onClick={() => void signOut()} aria-label="Keluar"><LogOut className="size-4" /></Button>
+          </div>
         </div>
       </section>
 
       <Card className="rounded-3xl border-border/70 shadow-sm">
-        <CardHeader className="pb-3"><div className="flex items-center justify-between"><div><CardTitle className="text-base">Kemajuan</CardTitle><CardDescription>Perkembangan belajar kamu.</CardDescription></div><CalendarDays className="size-5 text-muted-foreground" /></div></CardHeader>
+        <CardHeader className="pb-3"><div className="flex items-center justify-between"><div><CardTitle className="text-base">Kemajuan belajar</CardTitle><CardDescription>Ringkasan materi yang sudah kamu pelajari.</CardDescription></div><CalendarDays className="size-5 text-muted-foreground" /></div></CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            {[["Kanji", learnedKanji], ["Kotoba", learnedVocab], ["Bunpō", learnedGrammar], ["Dokkai", learnedDokkai], ["Choukai", learnedChoukai]].map(([label, value]) => <div key={String(label)} className="rounded-2xl border bg-muted/20 p-3 text-center"><p className="text-[10px] text-muted-foreground">{label}</p><p className="mt-1 text-lg font-bold">{Number(value).toLocaleString("id-ID")}</p></div>)}
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+            {[["Kanji", learnedKanji], ["Kotoba", learnedVocab], ["Bunpō", learnedGrammar], ["Dokkai", learnedDokkai], ["Choukai", learnedChoukai]].map(([label, value]) => <div key={String(label)} className="rounded-2xl border bg-muted/20 p-3 text-center"><p className="text-[10px] text-muted-foreground">{label}</p><p className="mt-1 text-base font-bold">{Number(value).toLocaleString("id-ID")}</p></div>)}
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="mt-3 grid grid-cols-2 gap-2.5">
             <div className="flex items-center gap-3 rounded-2xl border p-3"><span className="grid size-9 place-items-center rounded-xl bg-orange-50 text-orange-500"><Flame className="size-4" /></span><div><p className="text-[10px] text-muted-foreground">Streak</p><p className="text-sm font-bold">{streak} hari</p></div></div>
-            <div className="flex items-center gap-3 rounded-2xl border p-3"><span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600"><Trophy className="size-4" /></span><div><p className="text-[10px] text-muted-foreground">XP</p><p className="text-sm font-bold">{points.toLocaleString("id-ID")}</p></div></div>
+            <div className="flex items-center gap-3 rounded-2xl border p-3"><span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600"><Trophy className="size-4" /></span><div><p className="text-[10px] text-muted-foreground">Hari belajar</p><p className="text-sm font-bold">{daysLearning} hari</p></div></div>
           </div>
         </CardContent>
       </Card>
