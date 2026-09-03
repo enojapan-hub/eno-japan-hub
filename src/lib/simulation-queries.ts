@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Level, RunnerQuestion } from "@/lib/learn-queries";
 
 export type SimulationGroup = "vocabulary" | "grammar_reading" | "language_reading" | "listening";
-export type SimulationQuestion = RunnerQuestion & { skill: string | null; questionType: string | null };
+export type SimulationQuestion = RunnerQuestion & { skill: string | null; questionType: string | null; audioUrl: string | null; transcriptJp: string | null };
 
 const skillsByGroup: Record<SimulationGroup, string[]> = {
   vocabulary: ["vocabulary", "kanji"],
@@ -20,16 +20,21 @@ const targets: Record<Level, Record<SimulationGroup, number>> = {
 };
 
 function normalize(rows: unknown[]): SimulationQuestion[] {
-  return (rows as Array<Record<string, unknown>>).map((q) => ({
-    id: String(q.id),
-    prompt: String(q.prompt ?? ""),
-    prompt_note: typeof q.prompt_note === "string" ? q.prompt_note : null,
-    choices: Array.isArray(q.choices) ? q.choices.map(String) : [],
-    correct_index: Number(q.correct_index),
-    explanation_id: typeof q.explanation_id === "string" ? q.explanation_id : null,
-    skill: typeof q.skill === "string" ? q.skill : null,
-    questionType: typeof q.question_type === "string" ? q.question_type : null,
-  }));
+  return (rows as Array<Record<string, unknown>>).map((q) => {
+    const listening = q.listening && typeof q.listening === "object" ? q.listening as Record<string, unknown> : null;
+    return {
+      id: String(q.id),
+      prompt: String(q.prompt ?? ""),
+      prompt_note: typeof q.prompt_note === "string" ? q.prompt_note : null,
+      choices: Array.isArray(q.choices) ? q.choices.map(String) : [],
+      correct_index: Number(q.correct_index),
+      explanation_id: typeof q.explanation_id === "string" ? q.explanation_id : null,
+      skill: typeof q.skill === "string" ? q.skill : null,
+      questionType: typeof q.question_type === "string" ? q.question_type : null,
+      audioUrl: listening && typeof listening.audio_url === "string" ? listening.audio_url : null,
+      transcriptJp: listening && typeof listening.transcript_jp === "string" ? listening.transcript_jp : null,
+    };
+  });
 }
 
 function shuffle<T>(items: T[]): T[] {
@@ -39,7 +44,7 @@ function shuffle<T>(items: T[]): T[] {
 async function fetchSkill(level: Level, skill: string, limit: number) {
   const result = await supabase
     .from("questions")
-    .select("id, prompt, prompt_note, choices, correct_index, explanation_id, level, skill, question_type")
+    .select("id, prompt, prompt_note, choices, correct_index, explanation_id, level, skill, question_type, listening:listening_id (audio_url, transcript_jp)")
     .eq("is_published", true)
     .eq("level", level)
     .eq("skill", skill)
