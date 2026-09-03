@@ -4,7 +4,7 @@ type SourceType = 'kanji' | 'vocabulary' | 'grammar' | 'reading'
 
 type TranslationResult = {
   translation: string
-  provider: 'openai' | 'claude' | 'gemini'
+  provider: 'gemini'
   model: string
 }
 
@@ -45,92 +45,6 @@ function extractJsonTranslation(raw: string) {
 
 const TRANSLATION_SYSTEM = `Anda adalah editor materi pembelajaran bahasa Jepang ENO JAPAN. Terjemahkan ke Bahasa Indonesia yang natural, ringkas, jelas, dan mudah dipahami pelajar JLPT. Jangan menerjemahkan kata per kata secara kaku. Pertahankan istilah Jepang, kanji, kana, contoh bahasa Jepang, angka, nama, dan simbol apa adanya jika muncul. Jangan menambahkan informasi yang tidak ada. Kembalikan hanya JSON dengan field translation.`
 
-async function translateWithOpenAI(text: string, context: string): Promise<TranslationResult> {
-  const apiKey = process.env.OPENAI_API_KEY
-  const model = process.env.OPENAI_TRANSLATION_MODEL || 'gpt-5.6-luna'
-  if (!apiKey) throw new Error('Missing OPENAI_API_KEY')
-
-  const response = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      store: false,
-      input: [
-        { role: 'system', content: TRANSLATION_SYSTEM },
-        { role: 'user', content: `Konteks materi: ${context}\n\nTeks sumber:\n${text}` },
-      ],
-      text: {
-        format: {
-          type: 'json_schema',
-          name: 'translation',
-          strict: true,
-          schema: {
-            type: 'object',
-            properties: { translation: { type: 'string' } },
-            required: ['translation'],
-            additionalProperties: false,
-          },
-        },
-      },
-    }),
-    signal: AbortSignal.timeout(30000),
-  })
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => '')
-    throw new Error(`OpenAI ${response.status}: ${body.slice(0, 500)}`)
-  }
-
-  const data = await response.json()
-  const output = Array.isArray(data.output)
-    ? data.output.flatMap((item: any) => Array.isArray(item?.content) ? item.content : [])
-    : []
-  const raw = output.map((item: any) => item?.text || '').filter(Boolean).join('')
-  const translation = extractJsonTranslation(raw)
-  if (!translation) throw new Error('OpenAI returned empty translation')
-  return { translation, provider: 'openai', model }
-}
-
-async function translateWithClaude(text: string, context: string): Promise<TranslationResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  const model = process.env.CLAUDE_TRANSLATION_MODEL || 'claude-3-5-haiku-latest'
-  if (!apiKey) throw new Error('Missing ANTHROPIC_API_KEY')
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 1200,
-      temperature: 0.2,
-      system: TRANSLATION_SYSTEM,
-      messages: [{
-        role: 'user',
-        content: `Konteks materi: ${context}\n\nTeks sumber:\n${text}`,
-      }],
-    }),
-    signal: AbortSignal.timeout(30000),
-  })
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => '')
-    throw new Error(`Claude ${response.status}: ${body.slice(0, 500)}`)
-  }
-
-  const data = await response.json()
-  const raw = Array.isArray(data.content)
-    ? data.content.map((item: any) => item?.text || '').filter(Boolean).join('')
-    : ''
-  const translation = extractJsonTranslation(raw)
-  if (!translation) throw new Error('Claude returned empty translation')
-  return { translation, provider: 'claude', model }
-}
-
 async function translateWithGemini(text: string, context: string): Promise<TranslationResult> {
   const apiKey = process.env.GEMINI_API_KEY
   const model = process.env.GEMINI_TRANSLATION_MODEL || 'gemini-2.5-flash-lite'
@@ -168,21 +82,7 @@ async function translateWithGemini(text: string, context: string): Promise<Trans
 }
 
 async function translateNaturalIndonesian(text: string, context: string): Promise<TranslationResult> {
-  const errors: string[] = []
-
-  if (process.env.OPENAI_API_KEY) {
-    try { return await translateWithOpenAI(text, context) } catch (error) { errors.push(error instanceof Error ? error.message : 'OpenAI failed') }
-  }
-
-  if (process.env.ANTHROPIC_API_KEY) {
-    try { return await translateWithClaude(text, context) } catch (error) { errors.push(error instanceof Error ? error.message : 'Claude failed') }
-  }
-
-  if (process.env.GEMINI_API_KEY) {
-    try { return await translateWithGemini(text, context) } catch (error) { errors.push(error instanceof Error ? error.message : 'Gemini failed') }
-  }
-
-  throw new Error(`All translation providers failed: ${errors.join(' | ') || 'No AI provider configured'}`)
+  return translateWithGemini(text, context)
 }
 
 async function isAdmin(userId: string) {
