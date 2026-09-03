@@ -13,12 +13,18 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchMyProgress } from "@/lib/learn-queries";
+import { getMyAccount, updateMyAccount, type ProfileSettingsInput } from "@/lib/profile.functions";
 
 const LEVELS = ["N5", "N4", "N3", "N2", "N1"] as const;
 type Level = (typeof LEVELS)[number];
 type Language = "id" | "en" | "ja";
-type FormState = { display_name: string; target_level: Level; ui_language: Language; daily_kanji_target: number; daily_vocab_target: number; daily_grammar_target: number; furigana_enabled: boolean; daily_reminder: boolean };
-type Account = { user: { email?: string | null; created_at?: string; user_metadata?: Record<string, unknown> | null }; profile: { display_name?: string | null; target_level?: string | null; ui_language?: string | null; avatar_url?: string | null } | null; settings: { daily_kanji_target?: number | null; daily_vocab_target?: number | null; daily_grammar_target?: number | null; furigana_enabled?: boolean | null; daily_reminder?: boolean | null } | null };
+type FormState = ProfileSettingsInput;
+
+type Account = {
+  user: { email?: string | null; created_at?: string; user_metadata?: Record<string, unknown> | null };
+  profile: { display_name?: string | null; target_level?: string | null; ui_language?: string | null; avatar_url?: string | null } | null;
+  settings: { daily_kanji_target?: number | null; daily_vocab_target?: number | null; daily_grammar_target?: number | null; furigana_enabled?: boolean | null; daily_reminder?: boolean | null } | null;
+};
 
 export const Route = createFileRoute("/_authenticated/profil")({
   head: () => ({ meta: [{ title: "Profil — enonihongo" }, { name: "description", content: "Profil dan kemajuan belajar enonihongo." }] }),
@@ -28,72 +34,8 @@ export const Route = createFileRoute("/_authenticated/profil")({
 async function readAccount(): Promise<Account> {
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) throw new Error("Sesi masuk tidak ditemukan. Silakan masuk kembali.");
-  const id = auth.user.id;
-  const [{ data: profile, error: profileError }, { data: settings, error: settingsError }] = await Promise.all([
-    supabase.from("profiles").select("display_name,target_level,ui_language,avatar_url").eq("id", id).maybeSingle(),
-    supabase.from("user_settings").select("daily_kanji_target,daily_vocab_target,daily_grammar_target,furigana_enabled,daily_reminder").eq("user_id", id).maybeSingle(),
-  ]);
-  if (profileError) throw new Error(`Profil gagal dimuat: ${profileError.message}`);
-  if (settingsError) throw new Error(`Pengaturan gagal dimuat: ${settingsError.message}`);
-  return { user: auth.user, profile, settings };
-}
-
-async function saveAccount(values: FormState): Promise<void> {
-  const { data: auth, error } = await supabase.auth.getUser();
-  if (error || !auth.user) throw new Error("Sesi masuk tidak ditemukan.");
-  const id = auth.user.id;
-
-  const profileValues = {
-    display_name: values.display_name.trim(),
-    target_level: values.target_level,
-    ui_language: values.ui_language,
-  };
-
-  const { data: existingProfile, error: profileUpdateError } = await supabase
-    .from("profiles")
-    .update(profileValues)
-    .eq("id", id)
-    .select("id")
-    .maybeSingle();
-
-  if (profileUpdateError) {
-    throw new Error(`Profil gagal disimpan: ${profileUpdateError.message}`);
-  }
-
-  if (!existingProfile) {
-    const { error: profileInsertError } = await supabase.from("profiles").insert({
-      id,
-      ...profileValues,
-    });
-    if (profileInsertError) throw new Error(`Profil gagal dibuat: ${profileInsertError.message}`);
-  }
-
-  const settingsValues = {
-    daily_kanji_target: values.daily_kanji_target,
-    daily_vocab_target: values.daily_vocab_target,
-    daily_grammar_target: values.daily_grammar_target,
-    furigana_enabled: values.furigana_enabled,
-    daily_reminder: values.daily_reminder,
-  };
-
-  const { data: existingSettings, error: settingsUpdateError } = await supabase
-    .from("user_settings")
-    .update(settingsValues)
-    .eq("user_id", id)
-    .select("user_id")
-    .maybeSingle();
-
-  if (settingsUpdateError) {
-    throw new Error(`Pengaturan gagal disimpan: ${settingsUpdateError.message}`);
-  }
-
-  if (!existingSettings) {
-    const { error: settingsInsertError } = await supabase.from("user_settings").insert({
-      user_id: id,
-      ...settingsValues,
-    });
-    if (settingsInsertError) throw new Error(`Pengaturan gagal dibuat: ${settingsInsertError.message}`);
-  }
+  const account = await getMyAccount();
+  return { user: auth.user, profile: account.profile, settings: account.settings };
 }
 
 function ProfilePage() {
@@ -124,7 +66,7 @@ function ProfilePage() {
   }, [data]);
 
   const mutation = useMutation({
-    mutationFn: saveAccount,
+    mutationFn: (values: FormState) => updateMyAccount(values),
     onSuccess: async () => {
       setEditingProfile(false);
       await qc.invalidateQueries({ queryKey: ["my-account-direct"] });
@@ -196,7 +138,7 @@ function ProfilePage() {
           <div className="mt-3 flex items-center justify-center gap-2"><Button type="button" variant="outline" size="icon" className="size-9 rounded-full" onClick={() => void shareProfile()} aria-label="Bagikan profil"><Share2 className="size-4" /></Button><Button type="button" variant="outline" size="icon" className="size-9 rounded-full" onClick={() => void navigate({ to: "/pengaturan" })} aria-label="Pengaturan"><Settings className="size-4" /></Button><Button type="button" variant="outline" size="icon" className="size-9 rounded-full" onClick={() => void signOut()} aria-label="Keluar"><LogOut className="size-4" /></Button></div>
         </div>
       </section>
-      {editingProfile && <Card className="rounded-3xl border-primary/20 shadow-sm"><CardHeader className="pb-3"><CardTitle className="text-base">Edit profil</CardTitle><CardDescription>Nama dan level JLPT disimpan ke akun kamu.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="space-y-2"><Label htmlFor="profil-nama">Nama</Label><Input id="profil-nama" value={form.display_name} onChange={e => setForm({ ...form, display_name: e.target.value })} /></div><div className="space-y-2"><Label htmlFor="target_level">Target JLPT</Label><Select value={form.target_level} onValueChange={v => setForm({ ...form, target_level: v as Level })}><SelectTrigger id="target_level"><SelectValue placeholder="Pilih level" /></SelectTrigger><SelectContent>{LEVELS.map(level => <SelectItem key={level} value={level}>{level}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label htmlFor="ui_language">Bahasa aplikasi</Label><Select value={form.ui_language} onValueChange={v => setForm({ ...form, ui_language: v as Language })}><SelectTrigger id="ui_language"><Globe2 className="mr-2 size-4" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="id">Bahasa Indonesia</SelectItem><SelectItem value="en">English</SelectItem><SelectItem value="ja">日本語</SelectItem></SelectContent></Select></div><div className="flex gap-2"><Button type="button" variant="outline" className="flex-1 rounded-xl" onClick={() => { if (data) { const raw = data.profile?.target_level ?? String((data.user.user_metadata ?? {})["target_level"] ?? ""); setForm({ ...form, target_level: (LEVELS as readonly string[]).includes(raw) ? raw as Level : "N5" }); } setEditingProfile(false); }}>Batal</Button><Button type="submit" className="flex-1 rounded-xl" disabled={mutation.isPending}>{mutation.isPending ? "Menyimpan…" : "Simpan"}</Button></div></CardContent></Card>}
+      {editingProfile && <Card className="rounded-3xl border-primary/20 shadow-sm"><CardHeader className="pb-3"><CardTitle className="text-base">Edit profil</CardTitle><CardDescription>Nama dan level JLPT disimpan ke akun kamu.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="space-y-2"><Label htmlFor="profil-nama">Nama</Label><Input id="profil-nama" value={form.display_name} onChange={e => setForm({ ...form, display_name: e.target.value })} /></div><div className="space-y-2"><Label htmlFor="target_level">Target JLPT</Label><Select value={form.target_level} onValueChange={v => setForm({ ...form, target_level: v as Level })}><SelectTrigger id="target_level"><SelectValue placeholder="Pilih level" /></SelectTrigger><SelectContent>{LEVELS.map(level => <SelectItem key={level} value={level}>{level}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label htmlFor="ui_language">Bahasa aplikasi</Label><Select value={form.ui_language} onValueChange={v => setForm({ ...form, ui_language: v as Language })}><SelectTrigger id="ui_language"><Globe2 className="mr-2 size-4" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="id">Bahasa Indonesia</SelectItem><SelectItem value="en">English</SelectItem><SelectItem value="ja">日本語</SelectItem></SelectContent></Select></div><div className="flex gap-2"><Button type="button" variant="outline" className="flex-1 rounded-xl" onClick={() => { void refetch(); setEditingProfile(false); }}>Batal</Button><Button type="submit" className="flex-1 rounded-xl" disabled={mutation.isPending}>{mutation.isPending ? "Menyimpan…" : "Simpan"}</Button></div></CardContent></Card>}
       <Card className="rounded-3xl border-border/70 shadow-sm"><CardHeader className="pb-3"><div className="flex items-center justify-between"><div><CardTitle className="text-base">Kemajuan belajar</CardTitle><CardDescription>Ringkasan materi yang sudah kamu pelajari.</CardDescription></div><CalendarDays className="size-5 text-muted-foreground" /></div></CardHeader><CardContent><div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">{[["Kanji", learnedKanji], ["Kotoba", learnedVocab], ["Bunpō", learnedGrammar], ["Dokkai", learnedDokkai], ["Choukai", learnedChoukai]].map(([label, value]) => <div key={String(label)} className="rounded-2xl border bg-muted/20 p-3 text-center"><p className="text-[10px] text-muted-foreground">{label}</p><p className="mt-1 text-base font-bold">{Number(value).toLocaleString("id-ID")}</p></div>)}</div><div className="mt-3 grid grid-cols-2 gap-2.5"><div className="flex items-center gap-3 rounded-2xl border p-3"><span className="grid size-9 place-items-center rounded-xl bg-orange-50 text-orange-500"><Flame className="size-4" /></span><div><p className="text-[10px] text-muted-foreground">Streak</p><p className="text-sm font-bold">{streak} hari</p></div></div><div className="flex items-center gap-3 rounded-2xl border p-3"><span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600"><Trophy className="size-4" /></span><div><p className="text-[10px] text-muted-foreground">Hari belajar</p><p className="text-sm font-bold">{daysLearning} hari</p></div></div></div></CardContent></Card>
       <Card className="rounded-3xl border-border/70 shadow-sm"><CardHeader className="pb-3"><CardTitle className="text-base">Hadiah</CardTitle><CardDescription>Poin belajar dapat digunakan untuk manfaat premium.</CardDescription></CardHeader><CardContent><div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-600"><Gift className="size-5" /></span><div className="min-w-0 flex-1"><p className="text-sm font-semibold">Premium enonihongo</p><p className="text-[11px] text-muted-foreground">Sistem penukaran poin akan tersedia setelah fitur hadiah diaktifkan.</p></div><span className="shrink-0 rounded-full bg-background px-2 py-1 text-[10px] font-semibold text-muted-foreground">Segera</span></div></CardContent></Card>
       <Card className="rounded-3xl border-border/70 shadow-sm"><CardHeader className="pb-3"><CardTitle className="text-base">Target & tampilan belajar</CardTitle><CardDescription>Pengaturan belajar tersimpan di akun kamu.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="grid gap-3 sm:grid-cols-3"><NumberField label="Kanji / hari" value={form.daily_kanji_target} max={100} onChange={v => setForm({ ...form, daily_kanji_target: v })} /><NumberField label="Kotoba / hari" value={form.daily_vocab_target} max={200} onChange={v => setForm({ ...form, daily_vocab_target: v })} /><NumberField label="Bunpō / hari" value={form.daily_grammar_target} max={100} onChange={v => setForm({ ...form, daily_grammar_target: v })} /></div><div className="flex items-center justify-between rounded-2xl border p-3"><div><p className="text-sm font-medium">Tampilkan furigana</p><p className="text-xs text-muted-foreground">Gunakan furigana saat belajar.</p></div><Switch checked={form.furigana_enabled} onCheckedChange={v => setForm({ ...form, furigana_enabled: v })} /></div><div className="flex items-center justify-between rounded-2xl border p-3"><div><p className="text-sm font-medium">Pengingat harian</p><p className="text-xs text-muted-foreground">Aktifkan pengingat belajar.</p></div><Switch checked={form.daily_reminder} onCheckedChange={v => setForm({ ...form, daily_reminder: v })} /></div><Button type="submit" variant="outline" className="w-full rounded-xl" disabled={mutation.isPending}>{mutation.isPending ? "Menyimpan…" : "Simpan target"}</Button></CardContent></Card>
