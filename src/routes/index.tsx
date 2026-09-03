@@ -1,72 +1,78 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { ArrowRight, BookOpen, GraduationCap, Repeat } from "lucide-react";
+import { ArrowRight, Signal, Wifi, BatteryFull, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BrandMark } from "@/components/layout/BrandMark";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "enonihongo — Belajar Bahasa Jepang & Persiapan JLPT N5–N1" },
-      { name: "description", content: "Belajar kanji, kotoba, bunpo, reading, listening, dan latihan JLPT N5–N1 dengan alur belajar yang sederhana." },
-      { property: "og:title", content: "enonihongo — Belajar Bahasa Jepang & Persiapan JLPT" },
-      { property: "og:description", content: "Platform belajar Jepang N5–N1 untuk belajar, berlatih, dan mengukur progress." },
+      { title: "ENO JAPAN — Belajar Bahasa Jepang" },
+      { name: "description", content: "Belajar bahasa Jepang dan persiapan JLPT N5–N1 bersama ENO JAPAN." },
+      { property: "og:title", content: "ENO JAPAN — Belajar Bahasa Jepang" },
+      { property: "og:description", content: "Belajar bahasa Jepang dengan alur yang sederhana, konsisten, dan terukur." },
     ],
   }),
-  component: HomePage,
+  component: WelcomePage,
 });
 
-function HomePage() {
+function WelcomePage() {
   const { user, loading } = useAuth();
 
-  // Setelah login, / menjadi Beranda aplikasi. Halaman marketing hanya tampil
-  // untuk pengguna yang belum login sehingga tidak ada lagi dua "home" berbeda.
   if (!loading && user) return <Navigate to="/dashboard" replace />;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-4 sm:px-6">
-        <BrandMark />
-        {loading ? <span className="h-9 w-24" aria-hidden /> : <Button asChild size="sm" variant="outline"><Link to="/auth">Masuk</Link></Button>}
-      </header>
-
-      <main>
-        <section className="mx-auto w-full max-w-5xl px-4 pb-16 pt-10 sm:px-6 sm:pt-20">
-          <p className="text-sm font-medium text-primary">JLPT N5 – N1</p>
-          <h1 className="mt-3 max-w-3xl text-4xl font-semibold leading-[1.12] tracking-tight sm:text-6xl">Belajar bahasa Jepang dengan tenang, konsisten, dan terukur.</h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">enonihongo membantu kamu membangun kebiasaan belajar melalui kanji, kotoba, bunpo, reading, listening, quiz, dan latihan JLPT.</p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg"><Link to="/auth">Mulai gratis<ArrowRight aria-hidden className="ml-1 size-4" /></Link></Button>
+    <main className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="relative flex h-[740px] w-full max-w-[360px] flex-col justify-between overflow-hidden rounded-[40px] border-4 border-gray-200 bg-white shadow-2xl">
+        <div className="z-10 flex items-center justify-between px-6 pt-3 text-xs font-semibold text-black">
+          <span>12:30</span>
+          <div className="h-5 w-24 rounded-full bg-black" aria-hidden />
+          <div className="flex items-center gap-1" aria-hidden>
+            <Signal className="size-3.5" strokeWidth={2.5} />
+            <Wifi className="size-3.5" strokeWidth={2.5} />
+            <BatteryFull className="size-4" strokeWidth={2.5} />
           </div>
-
-          <div aria-hidden className="mt-14 rounded-3xl border border-border bg-card px-6 py-10 text-center shadow-sm sm:px-10">
-            <span lang="ja" className="jp-display block text-foreground">勉強</span>
-            <span className="mt-3 block text-sm text-muted-foreground">benkyou — belajar</span>
-          </div>
-        </section>
-
-        <section className="mx-auto w-full max-w-5xl px-4 pb-20 sm:px-6">
-          <h2 className="text-xl font-semibold tracking-tight">Satu tempat untuk belajar</h2>
-          <div className="mt-5 grid gap-4 sm:grid-cols-3">
-            <Feature icon={BookOpen} title="Materi N5–N1" description="Kanji, kotoba, bunpo, reading, dan listening dalam satu alur belajar." />
-            <Feature icon={Repeat} title="Review terjadwal" description="Ulangi materi yang perlu diperkuat agar hafalan tidak cepat hilang." />
-            <Feature icon={GraduationCap} title="Simulasi JLPT" description="Latihan berformat ujian dengan waktu, skor, dan analisis kemampuan." />
-          </div>
-        </section>
-      </main>
-
-      <footer className="border-t border-border">
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-xs text-muted-foreground sm:px-6">
-          <span>© {new Date().getFullYear()} enonihongo</span>
-          <Link to="/auth" className="underline underline-offset-4 hover:text-foreground">Masuk / Daftar</Link>
         </div>
-      </footer>
-    </div>
-  );
-}
 
-function Feature({ icon: Icon, title, description }: { icon: typeof BookOpen; title: string; description: string }) {
-  return <Card className="border-border/80 shadow-none transition-shadow hover:shadow-sm"><CardHeader><Icon aria-hidden className="size-5 text-primary" /><CardTitle className="mt-2 text-base">{title}</CardTitle><CardDescription>{description}</CardDescription></CardHeader><CardContent /></Card>;
+        <div className="relative flex flex-1 items-center justify-center px-5 pt-4">
+          <img
+            src="https://img.freepik.com/free-vector/hand-drawn-camping-adventure-illustration_23-2149157218.jpg"
+            alt="Ilustrasi perjalanan belajar"
+            className="h-64 w-64 object-contain"
+          />
+        </div>
+
+        <div className="absolute left-1/2 top-[48%] z-20 -translate-x-1/2 -translate-y-1/2">
+          <div className="flex size-14 items-center justify-center rounded-2xl border-2 border-white bg-black shadow-lg">
+            <Sparkles className="size-7 text-white" fill="currentColor" strokeWidth={1.5} aria-hidden />
+          </div>
+        </div>
+
+        <section className="relative z-10 flex flex-col items-center rounded-t-[40px] bg-[#FF6584] px-8 pb-8 pt-12 text-center text-white">
+          <span className="mb-4 rounded-full border border-white/30 bg-white/20 px-3 py-1 text-[10px] font-medium backdrop-blur-sm">
+            ENO JAPAN
+          </span>
+
+          <h1 className="mb-3 max-w-[250px] text-2xl font-extrabold leading-snug">
+            Ready to Learn Japanese?
+          </h1>
+          <p className="mb-7 max-w-[245px] text-sm leading-5 text-white/90">
+            Belajar kanji, kotoba, bunpo, reading, dan listening untuk JLPT N5–N1.
+          </p>
+
+          <Button
+            asChild
+            className="size-12 rounded-2xl bg-white p-0 text-gray-700 shadow-md hover:bg-gray-50 active:scale-95"
+            aria-label="Mulai belajar"
+          >
+            <Link to="/auth">
+              <ArrowRight className="size-5" aria-hidden />
+            </Link>
+          </Button>
+
+          <div className="mt-8 h-1 w-32 rounded-full bg-black" aria-hidden />
+        </section>
+      </div>
+    </main>
+  );
 }
