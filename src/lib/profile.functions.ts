@@ -38,7 +38,7 @@ async function readMemberData(context: { supabase: any; userId: string }) {
   ]);
   if (profileError) throw new Error(profileError.message);
   if (settingsError) throw new Error(settingsError.message);
-  return { profile, settings: settings ?? DEFAULT_SETTINGS };
+  return { profile, settings: settings ?? DEFAULT_SETTINGS, hasSettingsRow: Boolean(settings) };
 }
 
 export const getMyAccount = createServerFn({ method: "GET" })
@@ -53,10 +53,9 @@ export const updateMyAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => settingsSchema.parse(data))
   .handler(async ({ context, data }) => {
-    const { profile, settings: existingSettings } = await readMemberData(context);
+    const { profile, hasSettingsRow } = await readMemberData(context);
     if (!profile) throw new Error("Profil akun belum tersedia. Silakan masuk kembali.");
 
-    // Profil adalah data utama akun dan wajib tersimpan.
     const { error: profileError } = await context.supabase
       .from("profiles")
       .update({
@@ -67,10 +66,9 @@ export const updateMyAccount = createServerFn({ method: "POST" })
       .eq("id", context.userId);
     if (profileError) throw new Error(`Profil gagal disimpan: ${profileError.message}`);
 
-    // Jangan melakukan INSERT/UPSERT pada user_settings dari client-authenticated
-    // context. Akun lama/baru yang belum memiliki row akan terkena RLS INSERT.
-    // Jika row sudah ada, cukup UPDATE row milik pengguna tersebut.
-    const hasSettingsRow = existingSettings !== DEFAULT_SETTINGS;
+    // Jangan melakukan INSERT/UPSERT pada user_settings dari authenticated context.
+    // Jika row belum ada, RLS INSERT dapat menggagalkan seluruh penyimpanan profil.
+    // Row yang sudah ada tetap diperbarui dengan UPDATE milik user sendiri.
     if (hasSettingsRow) {
       const { error: settingsError } = await context.supabase
         .from("user_settings")
