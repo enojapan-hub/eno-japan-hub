@@ -31,3 +31,5 @@ npm run dev
 ## Production
 
 Build production menggunakan Vite + TanStack Start + Nitro dan dideploy ke Vercel.
+
+<!-- Deployment smoke-test marker -->
