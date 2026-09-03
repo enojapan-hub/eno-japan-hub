@@ -89,14 +89,15 @@ function AuthPage() {
   const isLogin = mode === "login";
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-6 sm:px-6 sm:py-8">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f7f4ef] px-4 py-6 sm:px-6 sm:py-8">
       <div
         aria-hidden="true"
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: "url(https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=2200&q=85)" }}
       />
-      <div aria-hidden="true" className="absolute inset-0 bg-slate-950/35" />
-      <section className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/50 bg-card shadow-2xl shadow-slate-950/20">
+      <div aria-hidden="true" className="absolute inset-0 bg-[#7f172b]/28" />
+      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-[#8f1d2c]/35 via-[#8f1d2c]/10 to-[#171717]/35" />
+      <section className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/65 bg-card/95 shadow-2xl shadow-black/25">
         <div className="grid md:grid-cols-[1.05fr_.95fr]">
           <div className="bg-card p-6 sm:p-8 md:p-9">
             <div className="mb-6 flex items-center justify-center md:justify-start">
@@ -166,15 +167,16 @@ function AuthPage() {
               className="absolute inset-0 bg-cover bg-center"
               style={{ backgroundImage: "url(https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1400&q=85)" }}
             />
-            <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-900/25 to-slate-950/15" />
+            <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#171717]/80 via-[#8f1d2c]/35 to-[#8f1d2c]/20" />
+            <div aria-hidden="true" className="absolute inset-0 bg-[#8f1d2c]/12" />
             <div className="relative">
-              <span className="inline-flex rounded-full border border-white/25 bg-black/20 px-3 py-1 text-[11px] font-medium tracking-wide">日本語学習</span>
-              <h2 className="mt-6 text-3xl font-bold leading-tight tracking-tight">Satu langkah kecil setiap hari.</h2>
-              <p className="mt-3 max-w-xs text-sm leading-6 text-white/85">Kanji, kotoba, bunpou, dokkai, choukai, quiz, dan persiapan JLPT dalam satu tempat.</p>
+              <span className="inline-flex rounded-full border border-white/30 bg-[#8f1d2c]/75 px-3 py-1 text-[11px] font-semibold tracking-wide">日本語学習</span>
+              <h2 className="mt-6 text-3xl font-bold leading-tight tracking-tight drop-shadow-sm">Satu langkah kecil setiap hari.</h2>
+              <p className="mt-3 max-w-xs text-sm leading-6 text-white/90">Kanji, kotoba, bunpou, dokkai, choukai, quiz, dan persiapan JLPT dalam satu tempat.</p>
             </div>
-            <div className="relative rounded-2xl border border-white/20 bg-black/25 p-4">
+            <div className="relative rounded-2xl border border-white/25 bg-[#171717]/45 p-4 shadow-lg">
               <p className="font-jp text-lg font-medium">日本語を、もっと楽しく。</p>
-              <p className="mt-1 text-xs text-white/75">Belajar konsisten. Pahami bertahap. Capai targetmu.</p>
+              <p className="mt-1 text-xs text-white/80">Belajar konsisten. Pahami bertahap. Capai targetmu.</p>
             </div>
           </aside>
         </div>
