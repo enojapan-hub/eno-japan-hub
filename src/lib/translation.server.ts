@@ -13,13 +13,13 @@ const SOURCE_DEFINITIONS = [
 const MAX_ATTEMPTS = 3
 const DEFAULT_LIMIT = 10
 const DISCOVERY_PAGE_SIZE = 50
-const MAX_BATCH_SIZE = 10
+const MAX_BATCH_SIZE = 3
 
 function looksIndonesian(value: string | null | undefined) {
   if (!value) return false
   const text = value.trim().toLowerCase()
   if (!text) return false
-  const markers = [' yang ', ' dan ', ' untuk ', ' dengan ', ' dari ', ' dalam ', ' adalah ', ' berarti ', ' digunakan ', ' dapat ', ' atau ', ' bisa ', ' tidak ', ' akan ', ' pada ', ' ke ', ' di ']
+  const markers = [' yang ', ' dan ', ' untuk ', ' dengan ', ' dari ', ' dalam ', ' adalah ', ' berarti ', ' digunakan ', ' dapat ', ' atau ']
   return markers.some((marker) => ` ${text} `.includes(marker))
 }
 
@@ -27,37 +27,52 @@ function looksJapanese(value: string) {
   return /[\u3040-\u30ff\u3400-\u9fff]/.test(value)
 }
 
-function decodeGoogleTranslation(payload: unknown) {
-  if (!Array.isArray(payload) || !Array.isArray(payload[0])) return ''
-  return payload[0]
-    .filter((part: unknown) => Array.isArray(part) && typeof part[0] === 'string')
-    .map((part: unknown[]) => part[0] as string)
-    .join('')
-    .trim()
-}
-
 async function translateNaturalIndonesian(text: string, context: string) {
-  // Internet-based translation provider. No OpenAI API key or quota is used.
-  // Google Translate's public web endpoint is used only from the server so the
-  // browser never contacts the provider directly.
-  const url = new URL('https://translate.googleapis.com/translate_a/single')
-  url.searchParams.set('client', 'gtx')
-  url.searchParams.set('sl', 'en')
-  url.searchParams.set('tl', 'id')
-  url.searchParams.set('dt', 't')
-  url.searchParams.set('q', text)
+  const apiKey = process.env.GEMINI_API_KEY
+  const model = process.env.GEMINI_TRANSLATION_MODEL || 'gemini-2.5-flash-lite'
+  if (!apiKey) throw new Error('Missing GEMINI_API_KEY')
 
-  const response = await fetch(url, {
-    headers: { Accept: 'application/json', 'User-Agent': 'ENO-JAPAN/1.0' },
-    signal: AbortSignal.timeout(15000),
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
+    },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{
+          text: 'Anda adalah editor materi pembelajaran bahasa Jepang ENO JAPAN. Terjemahkan ke Bahasa Indonesia yang natural, ringkas, jelas, dan mudah dipahami pelajar JLPT. Jangan menerjemahkan kata per kata secara kaku. Pertahankan istilah Jepang, kanji, kana, contoh bahasa Jepang, angka, nama, dan simbol apa adanya jika muncul. Jangan menambahkan informasi yang tidak ada. Hanya kembalikan JSON sesuai schema.',
+        }],
+      },
+      contents: [{
+        role: 'user',
+        parts: [{ text: `Konteks materi: ${context}\n\nTeks sumber:\n${text}` }],
+      }],
+      generationConfig: {
+        temperature: 0.2,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'OBJECT',
+          properties: { translation: { type: 'STRING' } },
+          required: ['translation'],
+        },
+      },
+    }),
+    signal: AbortSignal.timeout(30000),
   })
-  if (!response.ok) throw new Error(`Internet translation ${response.status}`)
+
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(`Gemini ${response.status}: ${detail.slice(0, 500)}`)
+  }
 
   const data = await response.json()
-  const translation = decodeGoogleTranslation(data)
-  if (!translation) throw new Error(`Internet translation returned no result for ${context}`)
+  const outputText = data.candidates?.[0]?.content?.parts?.find((part: any) => typeof part.text === 'string')?.text
+  if (!outputText) throw new Error('Gemini returned no output text')
 
-  return { translation, model: 'google-web-translate' }
+  const parsed = JSON.parse(outputText)
+  if (!parsed.translation || typeof parsed.translation !== 'string') throw new Error('Invalid Gemini translation response')
+  return { translation: parsed.translation.trim(), model }
 }
 
 async function isAdmin(accessToken: string) {
@@ -103,6 +118,7 @@ async function discoverWork(limit: number) {
           const currentTarget = row[fields.target]
           if (typeof sourceText !== 'string' || !sourceText.trim()) continue
 
+          // A target that already differs from the English source is treated as translated.
           if (typeof currentTarget === 'string' && currentTarget.trim() && currentTarget.trim() !== sourceText.trim()) continue
           if (looksIndonesian(currentTarget)) continue
           if (looksJapanese(currentTarget ?? '') && currentTarget !== sourceText) continue
@@ -182,6 +198,7 @@ export async function runTranslationBatch(limit = DEFAULT_LIMIT) {
   const jobs = await discoverWork(Math.min(Math.max(limit, 1), MAX_BATCH_SIZE))
   const results = []
 
+  // Keep concurrency low to respect free-tier rate limits.
   for (let index = 0; index < jobs.length; index += MAX_BATCH_SIZE) {
     const chunk = jobs.slice(index, index + MAX_BATCH_SIZE)
     const chunkResults = await Promise.all(chunk.map(translateOne))
