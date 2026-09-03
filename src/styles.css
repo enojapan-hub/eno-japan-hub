@@ -125,6 +125,12 @@
   button, a { -webkit-tap-highlight-color: transparent; }
   :focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
   h1, h2, h3, h4 { letter-spacing: -0.015em; }
+  h1 { font-size: 1.5rem; line-height: 1.25; }
+  h2 { font-size: 1.25rem; line-height: 1.3; }
+  h3 { font-size: 1.05rem; line-height: 1.35; }
+  h4 { font-size: 0.95rem; line-height: 1.4; }
+  p { line-height: 1.5; }
+  input, textarea, select { font-size: 0.875rem; }
 }
 
 @utility font-jp { font-family: var(--font-jp); }
@@ -141,7 +147,17 @@
   line-height: 1.75;
 }
 
-/* Tema enonihongo: bersih, ringan, dan nyaman di ponsel. */
+/* ENO NIHONGO typography scale: compact, readable, consistent across screens. */
+@layer utilities {
+  .text-xs { font-size: 0.70rem; line-height: 1.35; }
+  .text-sm { font-size: 0.80rem; line-height: 1.45; }
+  .text-base { font-size: 0.875rem; line-height: 1.5; }
+  .text-lg { font-size: 1.05rem; line-height: 1.4; }
+  .text-xl { font-size: 1.20rem; line-height: 1.35; }
+  .text-2xl { font-size: 1.40rem; line-height: 1.3; }
+  .text-3xl { font-size: 1.70rem; line-height: 1.25; }
+}
+
 @layer components {
   .card, [data-card="true"] {
     border-radius: var(--radius);
@@ -149,13 +165,19 @@
   }
 
   button, [role="button"] {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
+    line-height: 1.25;
+  }
+
+  label {
+    font-size: 0.78rem;
+    line-height: 1.35;
   }
 
   @media (max-width: 640px) {
-    h1 { font-size: 1.55rem; line-height: 1.25; }
-    h2 { font-size: 1.3rem; line-height: 1.3; }
-    h3 { font-size: 1.1rem; line-height: 1.35; }
-    button, [role="button"] { min-height: 40px; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1.2rem; }
+    h3 { font-size: 1rem; }
+    button, [role="button"] { min-height: 38px; }
   }
 }
