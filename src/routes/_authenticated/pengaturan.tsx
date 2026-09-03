@@ -40,7 +40,7 @@ const content: Record<string, { title: string; sections: Section[] }> = {
 };
 
 function CompactInfoModal({ data, onClose }: { data: { title: string; sections: Section[] }; onClose: () => void }) {
-  return <div className="pointer-events-none fixed inset-0 z-[100] flex items-end justify-end p-3 sm:items-end sm:justify-end sm:p-4" onClick={onClose}>
+  return <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4" onClick={onClose}>
     <div role="dialog" aria-modal="true" aria-label={data.title} onClick={(e) => e.stopPropagation()} className="pointer-events-auto flex h-[50vh] max-h-[50vh] w-[min(92vw,420px)] flex-col overflow-hidden rounded-2xl border border-border/80 bg-background shadow-2xl">
       <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2.5">
         <div className="grid size-7 place-items-center rounded-lg bg-primary/10 text-primary"><CircleHelp className="size-3.5" /></div>
