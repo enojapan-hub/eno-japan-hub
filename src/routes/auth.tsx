@@ -84,101 +84,92 @@ function AuthPage() {
     }
   }
 
-  if (checking) return <div className="grid min-h-screen place-items-center bg-background"><Loader2 aria-label="Memuat" className="size-5 animate-spin text-muted-foreground" /></div>;
+  if (checking) return <div className="grid min-h-screen place-items-center bg-[#f4eee7]"><Loader2 aria-label="Memuat" className="size-5 animate-spin text-[#9b1c31]" /></div>;
 
   const isLogin = mode === "login";
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f7f4ef] px-4 py-6 sm:px-6 sm:py-8">
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url(https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=2200&q=85)" }}
-      />
-      <div aria-hidden="true" className="absolute inset-0 bg-[#7f172b]/28" />
-      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-[#8f1d2c]/35 via-[#8f1d2c]/10 to-[#171717]/35" />
-      <section className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/65 bg-card/95 shadow-2xl shadow-black/25">
-        <div className="grid md:grid-cols-[1.05fr_.95fr]">
-          <div className="bg-card p-6 sm:p-8 md:p-9">
-            <div className="mb-6 flex items-center justify-center md:justify-start">
-              <Link to="/"><BrandMark size="md" /></Link>
-            </div>
+    <main className="flex min-h-screen items-center justify-center bg-[#f4eee7] px-0 py-0 sm:px-5 sm:py-8">
+      <section className="relative flex min-h-screen w-full max-w-[380px] flex-col overflow-hidden bg-white shadow-2xl shadow-[#7f172b]/15 sm:min-h-[720px] sm:rounded-[36px]">
+        <header className="relative h-[220px] shrink-0 overflow-hidden bg-[#8f1d2c] px-6 pt-9 text-white">
+          <div aria-hidden="true" className="absolute -right-20 -top-24 size-64 rounded-full border-[34px] border-white/10" />
+          <div aria-hidden="true" className="absolute -left-24 top-24 size-52 rounded-full border-[26px] border-white/10" />
+          <div aria-hidden="true" className="absolute right-8 bottom-[-80px] size-44 rounded-full bg-[#f4eee7]/10" />
+          <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-[#a9233b]/35 via-transparent to-[#6f1426]/35" />
 
-            <div className="mb-6">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">ENO NIHONGO</p>
-              <h1 className="text-[1.55rem] font-bold leading-tight tracking-tight sm:text-[1.7rem]">
-                {isLogin ? "Selamat datang kembali" : "Mulai belajar bersama ENO"}
-              </h1>
-              <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-                {isLogin ? "Masuk untuk melanjutkan perjalanan belajar bahasa Jepang dan JLPT." : "Buat akun gratis untuk menyimpan progres belajar dan target JLPT kamu."}
-              </p>
-            </div>
+          <div className="relative z-10 flex justify-center">
+            <Link to="/" aria-label="ENO NIHONGO">
+              <span className="block rounded-2xl bg-white p-2.5 shadow-lg shadow-black/10">
+                <BrandMark size="lg" />
+              </span>
+            </Link>
+          </div>
+          <div className="relative z-10 mt-5 text-center">
+            <p className="font-jp text-xs font-medium tracking-[0.28em] text-white/80">日本語を、もっと楽しく。</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight">ENO NIHONGO</h1>
+          </div>
+        </header>
 
-            <form onSubmit={submitEmailAuth} className="space-y-4" noValidate>
-              <div className="space-y-1.5">
-                <Label htmlFor="auth-email">Email</Label>
-                <div className="relative">
-                  <Mail aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input id="auth-email" type="email" className="h-10 pl-9 text-sm" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="auth-password">Kata sandi</Label>
-                  {isLogin && <Link to="/reset-password" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">Lupa kata sandi?</Link>}
-                </div>
-                <div className="relative">
-                  <Lock aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input id="auth-password" type="password" className="h-10 pl-9 text-sm" value={password} onChange={e => setPassword(e.target.value)} autoComplete={isLogin ? "current-password" : "new-password"} required />
-                </div>
-              </div>
-
-              {error && <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-xs leading-5 text-destructive">{error}</p>}
-
-              <Button type="submit" className="h-10 w-full text-sm font-semibold" disabled={loading}>
-                {loading && <Loader2 aria-hidden className="size-4 animate-spin" />}
-                {loading ? "Memproses…" : isLogin ? "Masuk" : "Daftar"}
-                {!loading && <ArrowRight aria-hidden className="size-4" />}
-              </Button>
-            </form>
-
-            <div className="my-5 flex items-center gap-3">
-              <span className="h-px flex-1 bg-border" />
-              <span className="text-[11px] text-muted-foreground">atau</span>
-              <span className="h-px flex-1 bg-border" />
-            </div>
-
-            <Button type="button" variant="outline" className="h-10 w-full text-sm" onClick={signInWithGoogle} disabled={loading}>
-              Lanjutkan dengan Google
-            </Button>
-
-            <p className="mt-5 text-center text-xs leading-5 text-muted-foreground">
-              {isLogin ? "Belum punya akun? " : "Sudah punya akun? "}
-              <button type="button" className="font-semibold text-primary underline underline-offset-4" onClick={() => { setMode(isLogin ? "signup" : "login"); setError(null); }}>
-                {isLogin ? "Daftar sekarang" : "Masuk"}
-              </button>
+        <div className="flex flex-1 flex-col bg-[#fffdfa] px-6 pb-6 pt-7 sm:px-7">
+          <div className="mb-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9b1c31]">{isLogin ? "Selamat datang" : "Buat akun"}</p>
+            <h2 className="mt-1.5 text-[1.45rem] font-bold leading-tight tracking-tight text-[#26201f]">
+              {isLogin ? "Masuk ke akunmu" : "Mulai belajar bersama kami"}
+            </h2>
+            <p className="mt-1.5 text-xs leading-5 text-[#756b68]">
+              {isLogin ? "Lanjutkan belajar bahasa Jepang dan capai target JLPT-mu." : "Simpan progres belajar dan bangun kebiasaan bahasa Jepangmu."}
             </p>
           </div>
 
-          <aside className="relative hidden min-h-[460px] overflow-hidden p-9 text-white md:flex md:flex-col md:justify-between">
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: "url(https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1400&q=85)" }}
-            />
-            <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#171717]/80 via-[#8f1d2c]/35 to-[#8f1d2c]/20" />
-            <div aria-hidden="true" className="absolute inset-0 bg-[#8f1d2c]/12" />
-            <div className="relative">
-              <span className="inline-flex rounded-full border border-white/30 bg-[#8f1d2c]/75 px-3 py-1 text-[11px] font-semibold tracking-wide">日本語学習</span>
-              <h2 className="mt-6 text-3xl font-bold leading-tight tracking-tight drop-shadow-sm">Satu langkah kecil setiap hari.</h2>
-              <p className="mt-3 max-w-xs text-sm leading-6 text-white/90">Kanji, kotoba, bunpou, dokkai, choukai, quiz, dan persiapan JLPT dalam satu tempat.</p>
+          <form onSubmit={submitEmailAuth} className="space-y-3.5" noValidate>
+            <div className="space-y-1.5">
+              <Label htmlFor="auth-email" className="text-xs font-semibold text-[#443b38]">Email</Label>
+              <div className="relative">
+                <Mail aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9a8d89]" />
+                <Input id="auth-email" type="email" className="h-11 rounded-xl border-[#e5dcd6] bg-white pl-9 text-sm shadow-sm focus-visible:ring-[#9b1c31]" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required />
+              </div>
             </div>
-            <div className="relative rounded-2xl border border-white/25 bg-[#171717]/45 p-4 shadow-lg">
-              <p className="font-jp text-lg font-medium">日本語を、もっと楽しく。</p>
-              <p className="mt-1 text-xs text-white/80">Belajar konsisten. Pahami bertahap. Capai targetmu.</p>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="auth-password" className="text-xs font-semibold text-[#443b38]">Kata sandi</Label>
+                {isLogin && <Link to="/reset-password" className="text-[11px] font-medium text-[#9b1c31] underline underline-offset-4">Lupa kata sandi?</Link>}
+              </div>
+              <div className="relative">
+                <Lock aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9a8d89]" />
+                <Input id="auth-password" type="password" className="h-11 rounded-xl border-[#e5dcd6] bg-white pl-9 text-sm shadow-sm focus-visible:ring-[#9b1c31]" value={password} onChange={e => setPassword(e.target.value)} autoComplete={isLogin ? "current-password" : "new-password"} required />
+              </div>
             </div>
-          </aside>
+
+            {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">{error}</p>}
+
+            <Button type="submit" className="h-11 w-full rounded-xl bg-[#9b1c31] text-sm font-semibold text-white shadow-md shadow-[#9b1c31]/20 hover:bg-[#83182a]" disabled={loading}>
+              {loading && <Loader2 aria-hidden className="size-4 animate-spin" />}
+              {loading ? "Memproses…" : isLogin ? "Masuk" : "Daftar"}
+              {!loading && <ArrowRight aria-hidden className="size-4" />}
+            </Button>
+          </form>
+
+          <div className="my-4 flex items-center gap-3">
+            <span className="h-px flex-1 bg-[#e8dfda]" />
+            <span className="text-[10px] font-medium text-[#a0928d]">atau</span>
+            <span className="h-px flex-1 bg-[#e8dfda]" />
+          </div>
+
+          <Button type="button" variant="outline" className="h-11 w-full rounded-xl border-[#e5dcd6] bg-white text-sm font-medium text-[#443b38] shadow-sm hover:bg-[#f8f2ed]" onClick={signInWithGoogle} disabled={loading}>
+            <span className="grid size-5 place-items-center rounded-full bg-[#f4eee7] text-[11px] font-bold text-[#9b1c31]">G</span>
+            Lanjutkan dengan Google
+          </Button>
+
+          <div className="mt-auto pt-5 text-center">
+            <p className="text-xs text-[#756b68]">
+              {isLogin ? "Belum punya akun? " : "Sudah punya akun? "}
+              <button type="button" className="font-semibold text-[#9b1c31] underline underline-offset-4" onClick={() => { setMode(isLogin ? "signup" : "login"); setError(null); }}>
+                {isLogin ? "Daftar sekarang" : "Masuk"}
+              </button>
+            </p>
+            <p className="mt-3 text-[10px] text-[#b0a39e]">© {new Date().getFullYear()} ENO NIHONGO</p>
+          </div>
         </div>
       </section>
     </main>
