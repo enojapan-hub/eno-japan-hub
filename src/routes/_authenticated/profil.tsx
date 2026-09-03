@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState, type FormEvent } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarDays, Camera, Check, Flame, Gift, Globe2, Loader2, Share2, Trophy } from "lucide-react";
+import { CalendarDays, Camera, Check, Flame, Gift, Globe2, LogOut, Settings, Share2, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,10 @@ type Language = "id" | "en" | "ja";
 type FormState = { display_name: string; target_level: Level; ui_language: Language; daily_kanji_target: number; daily_vocab_target: number; daily_grammar_target: number; furigana_enabled: boolean; daily_reminder: boolean };
 type Account = { user: { email?: string | null; created_at?: string; user_metadata?: Record<string, unknown> | null }; profile: { display_name?: string | null; target_level?: string | null; ui_language?: string | null } | null; settings: { daily_kanji_target?: number | null; daily_vocab_target?: number | null; daily_grammar_target?: number | null; furigana_enabled?: boolean | null; daily_reminder?: boolean | null } | null };
 
-export const Route = createFileRoute("/_authenticated/profil")({ head: () => ({ meta: [{ title: "Profil — enonihongo" }, { name: "description", content: "Profil dan kemajuan belajar enonihongo." }] }), component: ProfilePage });
+export const Route = createFileRoute("/_authenticated/profil")({
+  head: () => ({ meta: [{ title: "Profil — enonihongo" }, { name: "description", content: "Profil dan kemajuan belajar enonihongo." }] }),
+  component: ProfilePage,
+});
 
 async function readAccount(): Promise<Account> {
   const { data: auth, error: authError } = await supabase.auth.getUser();
@@ -46,11 +49,11 @@ async function saveAccount(values: FormState): Promise<void> {
 }
 
 function ProfilePage() {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const { data, isLoading, isError, error, refetch } = useQuery({ queryKey: ["my-account-direct"], queryFn: readAccount, staleTime: 30_000 });
   const { data: progress } = useQuery({ queryKey: ["my-progress"], queryFn: fetchMyProgress, staleTime: 30_000 });
   const [form, setForm] = useState<FormState | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!data) return;
@@ -59,10 +62,26 @@ function ProfilePage() {
     setForm({ display_name: name, target_level: (LEVELS as readonly string[]).includes(data.profile?.target_level ?? "") ? data.profile?.target_level as Level : "N5", ui_language: language, daily_kanji_target: data.settings?.daily_kanji_target ?? 5, daily_vocab_target: data.settings?.daily_vocab_target ?? 10, daily_grammar_target: data.settings?.daily_grammar_target ?? 5, furigana_enabled: data.settings?.furigana_enabled ?? true, daily_reminder: data.settings?.daily_reminder ?? false });
   }, [data]);
 
-  const mutation = useMutation({ mutationFn: saveAccount, onSuccess: () => { toast.success("Pengaturan berhasil disimpan."); void qc.invalidateQueries({ queryKey: ["my-account-direct"] }); }, onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Pengaturan gagal disimpan.") });
-  function submit(e: React.FormEvent) { e.preventDefault(); if (!form) return; if (form.display_name.trim().length < 2) { setFormError("Nama minimal 2 karakter."); return; } setFormError(null); mutation.mutate({ ...form, display_name: form.display_name.trim() }); }
+  const mutation = useMutation({
+    mutationFn: saveAccount,
+    onSuccess: () => { toast.success("Pengaturan berhasil disimpan."); void qc.invalidateQueries({ queryKey: ["my-account-direct"] }); },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Pengaturan gagal disimpan."),
+  });
 
-  if (isLoading || !form) return <AppShell title="Profil"><div className="space-y-4"><Skeleton className="h-44 w-full rounded-3xl" /><Skeleton className="h-52 w-full rounded-3xl" /></div></AppShell>;
+  async function signOut() {
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) { toast.error(`Gagal keluar: ${signOutError.message}`); return; }
+    await navigate({ to: "/login" });
+  }
+
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!form) return;
+    if (form.display_name.trim().length < 2) { toast.error("Nama minimal 2 karakter."); return; }
+    mutation.mutate({ ...form, display_name: form.display_name.trim() });
+  }
+
+  if (isLoading || !form) return <AppShell title="Profil"><div className="space-y-4"><Skeleton className="h-[390px] w-full rounded-[36px]" /><Skeleton className="h-52 w-full rounded-3xl" /></div></AppShell>;
   if (isError) return <AppShell title="Profil"><Card><CardHeader><CardTitle>Profil tidak dapat dimuat</CardTitle><CardDescription>{(error as Error).message}</CardDescription></CardHeader><CardContent><Button variant="outline" onClick={() => void refetch()}>Coba lagi</Button></CardContent></Card></AppShell>;
 
   const metadata = data.user.user_metadata ?? {};
@@ -79,27 +98,69 @@ function ProfilePage() {
   const totalLearned = learnedKanji + learnedVocab + learnedGrammar + learnedDokkai + learnedChoukai;
   const createdAt = data.user.created_at ? new Date(data.user.created_at) : null;
   const daysLearning = createdAt ? Math.max(1, Math.floor((Date.now() - createdAt.getTime()) / 86400000) + 1) : 1;
-  const shareProfile = async () => { const text = `${name} sedang belajar bahasa Jepang di enonihongo • ${form.target_level} • ${points.toLocaleString("id-ID")} XP`; try { if (navigator.share) await navigator.share({ title: "Profil enonihongo", text, url: window.location.origin }); else { await navigator.clipboard.writeText(`${text} — ${window.location.origin}`); toast.success("Profil berhasil disalin."); } } catch { /* dibatalkan pengguna */ } };
 
-  return <AppShell title="Profil" description="Profil, kemajuan, dan pengaturan belajar kamu.">
-    <form onSubmit={submit} className="space-y-4" noValidate>
-      <Card className="overflow-hidden rounded-3xl border-border/70 bg-[#222222] text-white shadow-lg">
-        <CardContent className="p-3 sm:p-4"><div className="overflow-hidden rounded-[22px] bg-black/20"><div className="flex items-center gap-4 p-4 sm:p-5"><div className="relative shrink-0"><div className="grid size-[78px] place-items-center overflow-hidden rounded-[22px] border border-white/10 bg-white/10 text-2xl font-bold text-white">{avatar ? <img src={avatar} alt="Avatar pengguna" className="size-full object-cover" /> : name.slice(0, 1).toUpperCase()}</div><span className="absolute -bottom-1 -right-1 grid size-7 place-items-center rounded-full border-2 border-[#222222] bg-emerald-500 text-white"><Camera className="size-3.5" /></span></div><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate text-lg font-bold">{name}</p><span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">{form.target_level}</span></div><p className="mt-1 truncate text-xs text-white/55">{data.user.email ?? "Akun enonihongo"}</p><p className="mt-2 text-[11px] leading-5 text-white/65">Terus belajar, satu langkah demi satu langkah.</p></div><Button type="button" variant="ghost" size="icon" className="size-9 shrink-0 rounded-full text-white/75 hover:bg-white/10 hover:text-white" onClick={() => void shareProfile()} aria-label="Bagikan profil"><Share2 className="size-4" /></Button></div><div className="grid grid-cols-3 border-t border-white/10"><div className="p-3 text-center"><p className="text-[10px] text-white/45">XP</p><p className="mt-1 text-sm font-bold">{points.toLocaleString("id-ID")}</p></div><div className="border-x border-white/10 p-3 text-center"><p className="text-[10px] text-white/45">Materi</p><p className="mt-1 text-sm font-bold">{totalLearned}</p></div><div className="p-3 text-center"><p className="text-[10px] text-white/45">Hari belajar</p><p className="mt-1 text-sm font-bold">{daysLearning}</p></div></div></div></CardContent>
+  const shareProfile = async () => {
+    const text = `${name} sedang belajar bahasa Jepang di enonihongo • ${form.target_level} • ${points.toLocaleString("id-ID")} XP`;
+    try {
+      if (navigator.share) await navigator.share({ title: "Profil enonihongo", text, url: window.location.origin });
+      else { await navigator.clipboard.writeText(`${text} — ${window.location.origin}`); toast.success("Profil berhasil disalin."); }
+    } catch { /* pengguna membatalkan share */ }
+  };
+
+  return <AppShell title="Profil" description="Profil dan kemajuan belajar kamu.">
+    <form onSubmit={submit} className="space-y-5" noValidate>
+      {/* Profile card: same ENO JAPAN dark theme, with the requested overlapping-avatar shape. */}
+      <section className="relative flex min-h-[400px] w-full flex-col justify-end overflow-hidden rounded-[36px] bg-gradient-to-tr from-[#163c35] via-[#1f2937] to-[#35445d] p-3 shadow-2xl">
+        <div className="relative rounded-[28px] bg-[#222222] p-5 pt-14 text-white shadow-lg">
+          <div className="absolute -top-12 left-6 size-24 overflow-hidden rounded-full border-4 border-[#222222] bg-white/10 shadow-md">
+            {avatar ? <img src={avatar} alt="Foto profil" className="size-full object-cover" /> : <div className="grid size-full place-items-center text-3xl font-bold">{name.slice(0, 1).toUpperCase()}</div>}
+          </div>
+          <div className="absolute right-5 top-5 flex gap-2">
+            <Button type="button" variant="ghost" size="icon" className="size-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white" onClick={() => void shareProfile()} aria-label="Bagikan profil"><Share2 className="size-4" /></Button>
+            <Button type="button" variant="ghost" size="icon" className="size-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white" onClick={() => void navigate({ to: "/pengaturan" })} aria-label="Pengaturan"><Settings className="size-4" /></Button>
+          </div>
+          <div>
+            <h2 className="pr-20 text-2xl font-bold tracking-tight">{name}</h2>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-300">JLPT {form.target_level}</span>
+              <span className="rounded-full bg-amber-400/15 px-3 py-1 text-xs font-semibold text-amber-300">{points.toLocaleString("id-ID")} XP</span>
+            </div>
+          </div>
+          <p className="mt-4 text-sm leading-relaxed text-white/60">Terus belajar, satu langkah demi satu langkah.</p>
+          <div className="mt-6 flex items-center gap-3">
+            <Button type="button" className="flex-1 rounded-full bg-white py-3 font-medium text-gray-900 hover:bg-white/90" onClick={() => document.getElementById("profil-nama")?.focus()}><Camera className="mr-2 size-4" /> Edit profil</Button>
+            <Button type="button" variant="outline" className="size-12 rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10" onClick={() => void signOut()} aria-label="Keluar"><LogOut className="size-4" /></Button>
+          </div>
+          <div className="mt-5 grid grid-cols-3 border-t border-white/10 pt-4">
+            <div className="text-center"><p className="text-[10px] text-white/40">XP</p><p className="mt-1 text-sm font-bold">{points.toLocaleString("id-ID")}</p></div>
+            <div className="border-x border-white/10 text-center"><p className="text-[10px] text-white/40">Materi</p><p className="mt-1 text-sm font-bold">{totalLearned}</p></div>
+            <div className="text-center"><p className="text-[10px] text-white/40">Hari belajar</p><p className="mt-1 text-sm font-bold">{daysLearning}</p></div>
+          </div>
+        </div>
+      </section>
+
+      <Card className="rounded-3xl border-border/70 shadow-sm">
+        <CardHeader className="pb-3"><div className="flex items-center justify-between"><div><CardTitle className="text-base">Kemajuan</CardTitle><CardDescription>Perkembangan belajar kamu.</CardDescription></div><CalendarDays className="size-5 text-muted-foreground" /></div></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {[["Kanji", learnedKanji], ["Kotoba", learnedVocab], ["Bunpō", learnedGrammar], ["Dokkai", learnedDokkai], ["Choukai", learnedChoukai]].map(([label, value]) => <div key={String(label)} className="rounded-2xl border bg-muted/20 p-3 text-center"><p className="text-[10px] text-muted-foreground">{label}</p><p className="mt-1 text-lg font-bold">{Number(value).toLocaleString("id-ID")}</p></div>)}
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-3 rounded-2xl border p-3"><span className="grid size-9 place-items-center rounded-xl bg-orange-50 text-orange-500"><Flame className="size-4" /></span><div><p className="text-[10px] text-muted-foreground">Streak</p><p className="text-sm font-bold">{streak} hari</p></div></div>
+            <div className="flex items-center gap-3 rounded-2xl border p-3"><span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600"><Trophy className="size-4" /></span><div><p className="text-[10px] text-muted-foreground">XP</p><p className="text-sm font-bold">{points.toLocaleString("id-ID")}</p></div></div>
+          </div>
+        </CardContent>
       </Card>
-
-      <Card className="rounded-3xl border-border/70 shadow-sm"><CardHeader className="pb-3"><div className="flex items-center justify-between"><div><CardTitle className="text-base">Kemajuan</CardTitle><CardDescription>Perkembangan belajar kamu.</CardDescription></div><CalendarDays className="size-5 text-muted-foreground" /></div></CardHeader><CardContent><div className="grid grid-cols-2 gap-3 sm:grid-cols-5">{[["Kanji", learnedKanji], ["Kotoba", learnedVocab], ["Bunpō", learnedGrammar], ["Dokkai", learnedDokkai], ["Choukai", learnedChoukai]].map(([label, value]) => <div key={String(label)} className="rounded-2xl border bg-muted/20 p-3 text-center"><p className="text-[10px] text-muted-foreground">{label}</p><p className="mt-1 text-lg font-bold">{Number(value).toLocaleString("id-ID")}</p></div>)}</div><div className="mt-4 grid grid-cols-2 gap-3"><div className="flex items-center gap-3 rounded-2xl border p-3"><span className="grid size-9 place-items-center rounded-xl bg-orange-50 text-orange-500"><Flame className="size-4" /></span><div><p className="text-[10px] text-muted-foreground">Streak</p><p className="text-sm font-bold">{streak} hari</p></div></div><div className="flex items-center gap-3 rounded-2xl border p-3"><span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600"><Trophy className="size-4" /></span><div><p className="text-[10px] text-muted-foreground">XP</p><p className="text-sm font-bold">{points.toLocaleString("id-ID")}</p></div></div></div></CardContent></Card>
 
       <Card className="rounded-3xl border-border/70 shadow-sm"><CardHeader className="pb-3"><CardTitle className="text-base">Hadiah</CardTitle><CardDescription>Poin belajar dapat digunakan untuk manfaat premium.</CardDescription></CardHeader><CardContent><div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-600"><Gift className="size-5" /></span><div className="min-w-0 flex-1"><p className="text-sm font-semibold">Premium enonihongo</p><p className="text-[11px] text-muted-foreground">Sistem penukaran poin akan tersedia setelah fitur hadiah diaktifkan.</p></div><span className="shrink-0 rounded-full bg-background px-2 py-1 text-[10px] font-semibold text-muted-foreground">Segera</span></div></CardContent></Card>
 
-      <Card className="rounded-3xl border-border/70 shadow-sm"><CardHeader className="pb-3"><CardTitle className="text-base">Informasi profil</CardTitle></CardHeader><CardContent className="space-y-4"><div className="space-y-2"><Label htmlFor="display_name">Nama</Label><Input id="display_name" value={form.display_name} onChange={e => setForm({ ...form, display_name: e.target.value })} /></div><div className="space-y-2"><Label htmlFor="target_level">Target JLPT</Label><Select value={form.target_level} onValueChange={v => setForm({ ...form, target_level: v as Level })}><SelectTrigger id="target_level"><SelectValue /></SelectTrigger><SelectContent>{LEVELS.map(level => <SelectItem key={level} value={level}>{level}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label htmlFor="ui_language">Bahasa aplikasi</Label><Select value={form.ui_language} onValueChange={v => setForm({ ...form, ui_language: v as Language })}><SelectTrigger id="ui_language"><Globe2 className="mr-2 size-4" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="id">Bahasa Indonesia</SelectItem><SelectItem value="en">English</SelectItem><SelectItem value="ja">日本語</SelectItem></SelectContent></Select></div></CardContent></Card>
+      <Card className="rounded-3xl border-border/70 shadow-sm"><CardHeader className="pb-3"><CardTitle className="text-base">Informasi profil</CardTitle></CardHeader><CardContent className="space-y-4"><div className="space-y-2"><Label htmlFor="profil-nama">Nama</Label><Input id="profil-nama" value={form.display_name} onChange={e => setForm({ ...form, display_name: e.target.value })} /></div><div className="space-y-2"><Label htmlFor="target_level">Target JLPT</Label><Select value={form.target_level} onValueChange={v => setForm({ ...form, target_level: v as Level })}><SelectTrigger id="target_level"><SelectValue /></SelectTrigger><SelectContent>{LEVELS.map(level => <SelectItem key={level} value={level}>{level}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label htmlFor="ui_language">Bahasa aplikasi</Label><Select value={form.ui_language} onValueChange={v => setForm({ ...form, ui_language: v as Language })}><SelectTrigger id="ui_language"><Globe2 className="mr-2 size-4" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="id">Bahasa Indonesia</SelectItem><SelectItem value="en">English</SelectItem><SelectItem value="ja">日本語</SelectItem></SelectContent></Select></div><Button type="submit" className="w-full rounded-xl" disabled={mutation.isPending}>{mutation.isPending ? "Menyimpan…" : "Simpan perubahan"}</Button></CardContent></Card>
 
-      <Card className="rounded-3xl border-border/70 shadow-sm"><CardHeader className="pb-3"><CardTitle className="text-base">Target harian</CardTitle><CardDescription>Atur target belajar yang realistis untuk setiap hari.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="grid gap-3 sm:grid-cols-3"><NumberField id="daily_kanji_target" label="Kanji" value={form.daily_kanji_target} max={100} onChange={v => setForm({ ...form, daily_kanji_target: v })} /><NumberField id="daily_vocab_target" label="Kotoba" value={form.daily_vocab_target} max={200} onChange={v => setForm({ ...form, daily_vocab_target: v })} /><NumberField id="daily_grammar_target" label="Bunpō" value={form.daily_grammar_target} max={100} onChange={v => setForm({ ...form, daily_grammar_target: v })} /></div><ToggleRow id="furigana_enabled" label="Tampilkan furigana" description="Tampilkan cara baca kanji pada materi." checked={form.furigana_enabled} onChange={v => setForm({ ...form, furigana_enabled: v })} /><ToggleRow id="daily_reminder" label="Pengingat belajar" description="Aktifkan pengingat belajar harian." checked={form.daily_reminder} onChange={v => setForm({ ...form, daily_reminder: v })} /></CardContent></Card>
-
-      {formError && <p role="alert" className="text-sm text-destructive">{formError}</p>}
-      <Button type="submit" className="h-11 w-full rounded-2xl" disabled={mutation.isPending}>{mutation.isPending ? <Loader2 aria-hidden className="size-4 animate-spin" /> : <Check className="size-4" />}Simpan perubahan</Button>
+      <Card className="rounded-3xl border-border/70 shadow-sm"><CardHeader className="pb-3"><CardTitle className="text-base">Target & tampilan belajar</CardTitle><CardDescription>Pengaturan yang sudah tersimpan di akun kamu.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="grid gap-3 sm:grid-cols-3"><NumberField label="Kanji / hari" value={form.daily_kanji_target} max={100} onChange={v => setForm({ ...form, daily_kanji_target: v })} /><NumberField label="Kotoba / hari" value={form.daily_vocab_target} max={200} onChange={v => setForm({ ...form, daily_vocab_target: v })} /><NumberField label="Bunpō / hari" value={form.daily_grammar_target} max={100} onChange={v => setForm({ ...form, daily_grammar_target: v })} /></div><div className="flex items-center justify-between rounded-2xl border p-3"><div><p className="text-sm font-medium">Tampilkan furigana</p><p className="text-xs text-muted-foreground">Gunakan furigana saat belajar.</p></div><Switch checked={form.furigana_enabled} onCheckedChange={v => setForm({ ...form, furigana_enabled: v })} /></div><div className="flex items-center justify-between rounded-2xl border p-3"><div><p className="text-sm font-medium">Pengingat harian</p><p className="text-xs text-muted-foreground">Aktifkan pengingat belajar.</p></div><Switch checked={form.daily_reminder} onCheckedChange={v => setForm({ ...form, daily_reminder: v })} /></div></CardContent></Card>
     </form>
   </AppShell>;
 }
 
-function NumberField({ id, label, value, max, onChange }: { id: string; label: string; value: number; max: number; onChange: (v: number) => void }) { return <div className="space-y-2"><Label htmlFor={id}>{label}</Label><Input id={id} type="number" min={0} max={max} value={value} onChange={e => onChange(Math.min(max, Math.max(0, Number(e.target.value) || 0)))} /></div>; }
-function ToggleRow({ id, label, description, checked, onChange }: { id: string; label: string; description: string; checked: boolean; onChange: (v: boolean) => void }) { return <div className="flex items-start justify-between gap-4 rounded-2xl border p-3.5"><div><Label htmlFor={id}>{label}</Label><p className="mt-1 text-xs text-muted-foreground">{description}</p></div><Switch id={id} checked={checked} onCheckedChange={onChange} /></div>; }
+function NumberField({ label, value, max, onChange }: { label: string; value: number; max: number; onChange: (value: number) => void }) {
+  return <div className="space-y-2"><Label>{label}</Label><Input type="number" min={1} max={max} value={value} onChange={e => onChange(Math.min(max, Math.max(1, Number(e.target.value) || 1)))} /></div>;
+}
