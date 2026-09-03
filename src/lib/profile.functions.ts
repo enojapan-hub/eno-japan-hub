@@ -53,9 +53,10 @@ export const updateMyAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => settingsSchema.parse(data))
   .handler(async ({ context, data }) => {
-    const { profile } = await readMemberData(context);
+    const { profile, settings: existingSettings } = await readMemberData(context);
     if (!profile) throw new Error("Profil akun belum tersedia. Silakan masuk kembali.");
 
+    // Profil adalah data utama akun dan wajib tersimpan.
     const { error: profileError } = await context.supabase
       .from("profiles")
       .update({
@@ -66,20 +67,23 @@ export const updateMyAccount = createServerFn({ method: "POST" })
       .eq("id", context.userId);
     if (profileError) throw new Error(`Profil gagal disimpan: ${profileError.message}`);
 
-    const { error: settingsError } = await context.supabase
-      .from("user_settings")
-      .upsert(
-        {
-          user_id: context.userId,
+    // Jangan melakukan INSERT/UPSERT pada user_settings dari client-authenticated
+    // context. Akun lama/baru yang belum memiliki row akan terkena RLS INSERT.
+    // Jika row sudah ada, cukup UPDATE row milik pengguna tersebut.
+    const hasSettingsRow = existingSettings !== DEFAULT_SETTINGS;
+    if (hasSettingsRow) {
+      const { error: settingsError } = await context.supabase
+        .from("user_settings")
+        .update({
           daily_kanji_target: data.daily_kanji_target,
           daily_vocab_target: data.daily_vocab_target,
           daily_grammar_target: data.daily_grammar_target,
           furigana_enabled: data.furigana_enabled,
           daily_reminder: data.daily_reminder,
-        },
-        { onConflict: "user_id" },
-      );
-    if (settingsError) throw new Error(`Pengaturan gagal disimpan: ${settingsError.message}`);
+        })
+        .eq("user_id", context.userId);
+      if (settingsError) throw new Error(`Pengaturan gagal disimpan: ${settingsError.message}`);
+    }
 
     return { ok: true };
   });
