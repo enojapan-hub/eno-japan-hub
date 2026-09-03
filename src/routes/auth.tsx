@@ -18,8 +18,12 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-const PRODUCTION_ORIGIN = "https://eno-japan-hub.vercel.app";
 type AuthMode = "login" | "signup";
+
+function getAuthRedirectUrl() {
+  if (typeof window !== "undefined") return `${window.location.origin}/onboarding`;
+  return "/onboarding";
+}
 
 async function continueAfterAuth(navigate: ReturnType<typeof useNavigate>) {
   const { data } = await supabase.auth.getUser();
@@ -54,7 +58,7 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { data, error: signUpError } = await supabase.auth.signUp({ email: normalizedEmail, password, options: { emailRedirectTo: `${PRODUCTION_ORIGIN}/onboarding` } });
+        const { data, error: signUpError } = await supabase.auth.signUp({ email: normalizedEmail, password, options: { emailRedirectTo: getAuthRedirectUrl() } });
         if (signUpError) throw signUpError;
         if (data.session) await continueAfterAuth(navigate);
         else { toast.success("Pendaftaran berhasil. Periksa email untuk verifikasi akun."); setMode("login"); }
@@ -72,7 +76,7 @@ function AuthPage() {
   async function signInWithGoogle() {
     setError(null); setLoading(true);
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${PRODUCTION_ORIGIN}/onboarding` } });
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: getAuthRedirectUrl() } });
       if (oauthError) throw oauthError;
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Gagal masuk dengan Google.";
