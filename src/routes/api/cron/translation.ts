@@ -10,7 +10,7 @@ export const Route = createFileRoute('/api/cron/translation')({
         if (authError) return authError
 
         try {
-          const result = await runTranslationBatch(10)
+          const result = await runTranslationBatch('kanji', 100)
           return Response.json({ ok: true, ...result })
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error)
