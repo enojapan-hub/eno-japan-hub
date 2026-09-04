@@ -78,7 +78,7 @@ function DokkaiDetail() {
           </div>
         </div>
         <CardContent className="px-4 py-5 sm:px-7 sm:py-6">
-          <div className="mb-4 flex items-center justify-between border-b border-border/60 pb-2"><span className="text-[11px] font-medium text-muted-foreground">Bacaan</span><span className="text-[10px] text-muted-foreground">{paragraphs.length} bagian · ± {p.estimated_minutes ?? "—"} menit</span></div>
+          <div className="mb-4 flex items-center justify-between border-b border-border/60 pb-2"><span className="text-[11px] font-medium text-muted-foreground">Bacaan</span><span className="text-[10px] text-muted-foreground">{paragraphs.length} bagian{p.estimated_minutes != null ? ` · ± ${p.estimated_minutes} menit` : ""}</span></div>
           <article lang="ja" className="font-jp text-foreground" style={{ fontSize: `${fontSize}rem` }}>
             {paragraphs.map((paragraph, index) => {
               const readingText = showFurigana && furiganaParagraphs[index] ? furiganaParagraphs[index] : paragraph;
