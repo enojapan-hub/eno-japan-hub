@@ -31,10 +31,10 @@ function normalize(rows: unknown[]): SimulationQuestion[] {
       explanation_id: typeof q.explanation_id === "string" ? q.explanation_id : null,
       skill: typeof q.skill === "string" ? q.skill : null,
       questionType: typeof q.question_type === "string" ? q.question_type : null,
-      audioUrl: listening && typeof listening.audio_url === "string" ? listening.audio_url : null,
+      audioUrl: listening && typeof listening.audio_url === "string" && listening.audio_url.trim() ? listening.audio_url : null,
       transcriptJp: listening && typeof listening.transcript_jp === "string" ? listening.transcript_jp : null,
     };
-  });
+  }).filter(q => q.prompt.trim() && q.choices.length === 4 && q.correct_index >= 0 && q.correct_index < 4);
 }
 
 function shuffle<T>(items: T[]): T[] {
@@ -85,7 +85,7 @@ export async function fetchSimulationQuestionSet(level: Level, group: Simulation
   }
 
   const listening = await Promise.all(skills.map((skill) => fetchSkill(level, skill, target)));
-  return shuffle(listening.flat()).slice(0, target);
+  return shuffle(listening.flat().filter(q => !!q.audioUrl)).slice(0, target);
 }
 
 export function getSimulationTarget(level: Level, group: SimulationGroup) {
