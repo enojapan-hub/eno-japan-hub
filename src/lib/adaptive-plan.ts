@@ -26,6 +26,7 @@ export async function fetchAdaptivePlan(): Promise<AdaptivePlan> {
 
   const client = supabase as any;
   await client.rpc("generate_daily_study_tasks", {});
+  await client.rpc("sync_daily_study_task_progress", {});
 
   const today = new Date().toISOString().slice(0, 10);
   const [{ data: plans }, { data: tasks }] = await Promise.all([
