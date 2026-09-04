@@ -25,8 +25,6 @@ function RootEntry() {
     async function finish() {
       if (typeof window === "undefined") return;
 
-      // Supabase may still fall back to an older Site URL. Move the callback,
-      // including its ?code=..., to the canonical host before PKCE exchange.
       if (window.location.origin !== CANONICAL_ORIGIN) {
         window.location.replace(`${CANONICAL_ORIGIN}${window.location.pathname}${window.location.search}${window.location.hash}`);
         return;
@@ -51,13 +49,34 @@ function RootEntry() {
 
         const { data, error } = await supabase.auth.getSession();
         if (error) throw error;
-
-        if (!data.session) {
+        const user = data.session?.user;
+        if (!user) {
           navigate({ to: "/auth", replace: true });
           return;
         }
 
-        const completed = data.session.user.user_metadata?.["onboarding_completed"] === true;
+        // Profile is the canonical onboarding source. Older accounts can have a
+        // complete profile while auth metadata is missing/stale, which previously
+        // sent them back to onboarding after every login.
+        const profileResult = await supabase
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profileResult.error) {
+          console.warn("Profile onboarding lookup failed; using auth metadata fallback.", profileResult.error);
+        }
+
+        const profileCompleted = profileResult.data?.onboarding_completed === true;
+        const metadataCompleted = user.user_metadata?.["onboarding_completed"] === true;
+        const completed = profileResult.error ? metadataCompleted : profileCompleted;
+
+        // Repair stale metadata opportunistically so later route decisions stay consistent.
+        if (profileCompleted && !metadataCompleted) {
+          void supabase.auth.updateUser({ data: { onboarding_completed: true } });
+        }
+
         navigate({ to: completed ? "/dashboard" : "/onboarding", replace: true });
       } catch (caught) {
         const text = caught instanceof Error ? caught.message : "Sesi login tidak dapat diselesaikan.";
