@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -14,13 +14,14 @@ export const Route = createFileRoute("/")({
 });
 
 const CANONICAL_ORIGIN = "https://enonihongo.vercel.app";
+const sleep = (ms: number) => new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error("timeout")), ms));
 
 function RootEntry() {
-  const navigate = useNavigate();
   const [message, setMessage] = useState("Menyelesaikan login…");
 
   useEffect(() => {
     let active = true;
+    const hardRedirect = (path: string) => window.location.replace(`${CANONICAL_ORIGIN}${path}`);
 
     async function finish() {
       if (typeof window === "undefined") return;
@@ -36,58 +37,62 @@ function RootEntry() {
 
       if (errorDescription) {
         if (active) setMessage(`Login gagal: ${errorDescription}`);
-        window.setTimeout(() => navigate({ to: "/auth", replace: true }), 900);
+        window.setTimeout(() => hardRedirect("/auth"), 800);
         return;
       }
 
       try {
         if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          const { error } = await Promise.race([
+            supabase.auth.exchangeCodeForSession(code),
+            sleep(8000),
+          ]);
           if (error) throw error;
           window.history.replaceState({}, document.title, "/");
         }
 
-        const { data, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        const user = data.session?.user;
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          sleep(5000),
+        ]);
+        if (sessionResult.error) throw sessionResult.error;
+
+        const user = sessionResult.data.session?.user;
         if (!user) {
-          navigate({ to: "/auth", replace: true });
+          hardRedirect("/auth");
           return;
         }
 
-        // Profile is the canonical onboarding source. Older accounts can have a
-        // complete profile while auth metadata is missing/stale, which previously
-        // sent them back to onboarding after every login.
-        const profileResult = await supabase
-          .from("profiles")
-          .select("onboarding_completed")
-          .eq("id", user.id)
-          .maybeSingle();
+        let completed = user.user_metadata?.["onboarding_completed"] === true;
 
-        if (profileResult.error) {
-          console.warn("Profile onboarding lookup failed; using auth metadata fallback.", profileResult.error);
+        try {
+          const profileResult = await Promise.race([
+            supabase.from("profiles").select("onboarding_completed").eq("id", user.id).maybeSingle(),
+            sleep(4000),
+          ]);
+          if (!profileResult.error) {
+            completed = profileResult.data?.onboarding_completed === true;
+            if (completed && user.user_metadata?.["onboarding_completed"] !== true) {
+              void supabase.auth.updateUser({ data: { onboarding_completed: true } });
+            }
+          }
+        } catch {
+          // Profile lookup is helpful but must never block login completion.
         }
 
-        const profileCompleted = profileResult.data?.onboarding_completed === true;
-        const metadataCompleted = user.user_metadata?.["onboarding_completed"] === true;
-        const completed = profileResult.error ? metadataCompleted : profileCompleted;
-
-        // Repair stale metadata opportunistically so later route decisions stay consistent.
-        if (profileCompleted && !metadataCompleted) {
-          void supabase.auth.updateUser({ data: { onboarding_completed: true } });
-        }
-
-        navigate({ to: completed ? "/dashboard" : "/onboarding", replace: true });
+        hardRedirect(completed ? "/dashboard" : "/onboarding");
       } catch (caught) {
-        const text = caught instanceof Error ? caught.message : "Sesi login tidak dapat diselesaikan.";
+        const text = caught instanceof Error && caught.message !== "timeout"
+          ? caught.message
+          : "Sesi login terlalu lama. Silakan login ulang.";
         if (active) setMessage(`Login gagal: ${text}`);
-        window.setTimeout(() => navigate({ to: "/auth", replace: true }), 1200);
+        window.setTimeout(() => hardRedirect("/auth"), 1200);
       }
     }
 
     void finish();
     return () => { active = false; };
-  }, [navigate]);
+  }, []);
 
   return (
     <main className="grid min-h-screen place-items-center bg-[#f7f7f4] px-6 text-center">
