@@ -19,7 +19,8 @@ export const Route = createFileRoute("/auth")({
 });
 
 type AuthMode = "login" | "signup";
-function getAuthRedirectUrl() { return typeof window !== "undefined" ? `${window.location.origin}/onboarding` : "/onboarding"; }
+const CANONICAL_ORIGIN = "https://enonihongo.vercel.app";
+function getAuthRedirectUrl() { return `${CANONICAL_ORIGIN}/onboarding`; }
 
 async function continueAfterAuth(navigate: ReturnType<typeof useNavigate>) {
   const { data, error } = await supabase.auth.getUser();
@@ -39,6 +40,11 @@ function AuthPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (typeof window !== "undefined" && window.location.origin !== CANONICAL_ORIGIN) {
+      window.location.replace(`${CANONICAL_ORIGIN}${window.location.pathname}${window.location.search}${window.location.hash}`);
+      return;
+    }
+
     let active = true;
     supabase.auth.getSession().then(async ({ data, error }) => {
       if (!active) return;
