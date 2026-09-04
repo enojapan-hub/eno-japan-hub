@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Outlet, Link, createRootRouteWithContext, useRouter, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,8 +11,7 @@ function NotFoundComponent() {
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
-  const router = useRouter();
-  return <div className="grid min-h-screen place-items-center bg-background px-4"><div className="max-w-md text-center"><h1 className="text-xl font-semibold">Halaman ini gagal dimuat</h1><p className="mt-2 text-sm text-muted-foreground">Terjadi kesalahan. Coba muat ulang atau kembali ke beranda.</p><div className="mt-6 flex justify-center gap-2"><button onClick={() => { router.invalidate(); reset(); }} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Coba lagi</button><Link to="/" className="rounded-lg border px-4 py-2 text-sm font-medium">Beranda</Link></div></div></div>;
+  return <div className="grid min-h-screen place-items-center bg-background px-4"><div className="max-w-md text-center"><h1 className="text-xl font-semibold">Halaman ini gagal dimuat</h1><p className="mt-2 text-sm text-muted-foreground">Terjadi kesalahan. Coba muat ulang atau kembali ke beranda.</p><div className="mt-6 flex justify-center gap-2"><button onClick={() => reset()} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Coba lagi</button><Link to="/" className="rounded-lg border px-4 py-2 text-sm font-medium">Beranda</Link></div></div></div>;
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -47,14 +46,25 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const router = useRouter();
+
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (!["SIGNED_IN", "SIGNED_OUT", "USER_UPDATED"].includes(event)) return;
-      router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+      if (event === "SIGNED_OUT") {
+        queryClient.clear();
+        if (typeof window !== "undefined" && window.location.pathname !== "/auth") {
+          window.location.replace("/auth");
+        }
+        return;
+      }
+      if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+        // Keep cached user-bound queries fresh without invalidating the router.
+        // Router invalidation here could race the PKCE callback and leave `/`
+        // permanently pending on iOS Safari.
+        void queryClient.invalidateQueries();
+      }
     });
     return () => data.subscription.unsubscribe();
-  }, [router, queryClient]);
+  }, [queryClient]);
+
   return <QueryClientProvider client={queryClient}><Outlet /><Toaster position="top-center" richColors /></QueryClientProvider>;
 }
