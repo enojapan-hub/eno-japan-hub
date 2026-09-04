@@ -6,11 +6,10 @@ export async function fetchVocabListResilient(level: Level) {
     const full = await fetchVocabList(level);
     if (full.length) return full;
   } catch {
-    // Fall through to the base vocabulary table so the UI never disappears
-    // if optional curriculum/sense joins are unavailable.
+    // Optional curriculum/sense tables must never make vocabulary disappear.
   }
 
-  const { data, error } = await supabase
+  const extended = await supabase
     .from("vocabulary")
     .select("id, term, reading, romaji, meaning_id, part_of_speech, examples, level, sort_order, source_book, lesson_number, lesson_title")
     .eq("level", level)
@@ -18,6 +17,25 @@ export async function fetchVocabListResilient(level: Level) {
     .order("lesson_number", { ascending: true, nullsFirst: false })
     .order("sort_order", { ascending: true });
 
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((row) => ({ ...row, senses: [] }));
+  if (!extended.error) {
+    return (extended.data ?? []).map((row) => ({ ...row, senses: [], curriculum: [] }));
+  }
+
+  // Final fallback only uses columns from the original V1 vocabulary schema.
+  const basic = await supabase
+    .from("vocabulary")
+    .select("id, term, reading, romaji, meaning_id, part_of_speech, examples, level, sort_order")
+    .eq("level", level)
+    .eq("is_published", true)
+    .order("sort_order", { ascending: true });
+
+  if (basic.error) throw new Error(basic.error.message);
+  return (basic.data ?? []).map((row) => ({
+    ...row,
+    source_book: null,
+    lesson_number: null,
+    lesson_title: null,
+    senses: [],
+    curriculum: [],
+  }));
 }
