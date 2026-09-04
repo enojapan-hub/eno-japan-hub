@@ -63,6 +63,7 @@ function TargetPage() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">Adaptive Study Planner</p>
               <h1 className="mt-1 text-[20px] font-bold tracking-tight">Target hari ini</h1>
               <p className="mt-1 text-[11px] text-muted-foreground">Rencana otomatis berdasarkan progres, review, dan target JLPT.</p>
+              {adaptive.data?.active && <p className="mt-1 text-[10px] font-medium text-primary">{adaptive.data.targetLevel} · {adaptive.data.daysLeft ?? 0} hari menuju target</p>}
             </div>
             <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary"><Target className="size-5" /></span>
           </div>
@@ -90,17 +91,22 @@ function TargetPage() {
               const to = taskLinks[task.task_type] || "/belajar";
               return (
                 <Link key={task.id} to={to as "/belajar"} className="block rounded-2xl border bg-card p-3 transition hover:border-primary/35">
-                  <div className="flex items-center gap-3">
-                    <span className={done >= task.target_count && task.target_count > 0 ? "grid size-8 place-items-center rounded-xl bg-primary/10 text-primary" : "grid size-8 place-items-center rounded-xl bg-muted text-muted-foreground"}><CheckCircle2 className="size-4" /></span>
+                  <div className="flex items-start gap-3">
+                    <span className={done >= task.target_count && task.target_count > 0 ? "grid size-8 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary" : "grid size-8 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground"}><CheckCircle2 className="size-4" /></span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2"><p className="truncate text-[12px] font-semibold">{adaptiveTaskLabels[task.task_type]}</p><span className="text-[10px] font-bold">{done}/{task.target_count}</span></div>
                       <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${taskPercent}%` }} /></div>
                       <p className="mt-1 text-[9px] text-muted-foreground">{done >= task.target_count && task.target_count > 0 ? "Selesai ✓" : done > 0 ? "Sedang dikerjakan" : "Belum dimulai"}</p>
+                      {!!task.suggestions?.length && <div className="mt-2 rounded-xl bg-primary/[0.045] px-2.5 py-2">
+                        <p className="text-[9px] font-semibold uppercase tracking-wide text-primary">Materi yang disarankan</p>
+                        <div className="mt-1.5 space-y-1.5">{task.suggestions.map((item,i)=><div key={`${item.id}-${i}`} className="flex items-start gap-2"><span className="mt-0.5 grid size-4 shrink-0 place-items-center rounded-full bg-primary/10 text-[8px] font-bold text-primary">{i+1}</span><div className="min-w-0"><p className="truncate font-jp text-[11px] font-semibold text-foreground">{item.label}</p>{item.subtitle&&<p className="truncate text-[9px] text-muted-foreground">{item.subtitle}</p>}</div></div>)}</div>
+                      </div>}
+                      {!task.suggestions?.length && task.task_type!=="quiz" && <p className="mt-2 rounded-lg bg-muted/40 px-2 py-1.5 text-[9px] text-muted-foreground">Materi spesifik sedang dipilih berdasarkan progresmu.</p>}
                     </div>
                   </div>
                 </Link>
               );
-            }) : <Card className="rounded-2xl"><CardContent className="p-4 text-[11px] text-muted-foreground">Rencana adaptif belum tersedia. Sistem akan membuatnya dari level aktif dan progresmu.</CardContent></Card>}
+            }) : <Card className="rounded-2xl"><CardContent className="p-4 text-[11px] text-muted-foreground">Rencana adaptif belum tersedia. Buka Profil → Edit Profil, pilih level dan target bulan, lalu simpan untuk mengaktifkan planner.</CardContent></Card>}
           </div>
         </section>
 
