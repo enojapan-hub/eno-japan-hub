@@ -4,16 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (!error && data.user) return { user: data.user };
+    // Use the locally persisted Supabase session here. After a successful PKCE
+    // exchange, getSession resolves immediately and avoids another /user request
+    // during route entry, which could leave the client route in a pending state.
+    const { data, error } = await supabase.auth.getSession();
 
-    // Jangan biarkan sesi Supabase yang rusak/kedaluwarsa membuat aplikasi
-    // terus menganggap pengguna masih login. Bersihkan sesi lokal sebelum
-    // mengarahkan kembali ke halaman masuk.
+    if (!error && data.session?.user) {
+      return { user: data.session.user };
+    }
+
     if (error) {
-      const message = `${error.name ?? ""} ${error.message ?? ""}`.toLowerCase();
-      const staleSession = /jwt|session|refresh token|auth session/.test(message);
-      if (staleSession) await supabase.auth.signOut({ scope: "local" });
+      await supabase.auth.signOut({ scope: "local" });
     }
 
     throw redirect({ to: "/auth" });
