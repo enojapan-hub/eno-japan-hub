@@ -19,10 +19,57 @@ const empty: DashboardMetrics = {
   last: null,
 };
 
+function metric(value: unknown): ProgressMetric {
+  const row = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  return { done: Number(row.done ?? 0) || 0, total: Number(row.total ?? 0) || 0 };
+}
+
+function normalizeDashboardMetrics(value: unknown): DashboardMetrics {
+  if (!value || typeof value !== "object") return empty;
+  const row = value as Record<string, unknown>;
+  const p = row.progress && typeof row.progress === "object" ? row.progress as Record<string, unknown> : {};
+  const weeklyRaw = Array.isArray(row.weekly) ? row.weekly : [];
+  const weekly: WeeklyMetric[] = weeklyRaw
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+    .map((item) => ({
+      date: String(item.date ?? ""),
+      xp: Number(item.xp ?? 0) || 0,
+      minutes: Number(item.minutes ?? 0) || 0,
+      activities: Number(item.activities ?? 0) || 0,
+    }))
+    .filter((item) => item.date.length > 0);
+
+  const lastRaw = row.last && typeof row.last === "object" ? row.last as Record<string, unknown> : null;
+  const last = lastRaw && lastRaw.id ? {
+    type: String(lastRaw.type ?? ""),
+    id: String(lastRaw.id),
+    level: String(lastRaw.level ?? row.level ?? "N5"),
+    at: String(lastRaw.at ?? ""),
+  } : null;
+
+  return {
+    level: String(row.level ?? "N5"),
+    progress: {
+      kanji: metric(p.kanji),
+      vocabulary: metric(p.vocabulary),
+      grammar: metric(p.grammar),
+      reading: metric(p.reading),
+      listening: metric(p.listening),
+    },
+    weekly,
+    last,
+  };
+}
+
 export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
-  const { data, error } = await (supabase as any).rpc("get_my_dashboard_metrics", {});
-  if (error || !data) return empty;
-  return data as DashboardMetrics;
+  try {
+    const { data, error } = await (supabase as any).rpc("get_my_dashboard_metrics", {});
+    if (error || !data) return empty;
+    return normalizeDashboardMetrics(data);
+  } catch (error) {
+    console.warn("Dashboard metrics fallback activated.", error);
+    return empty;
+  }
 }
 
 export async function resolveContinueLesson(last: DashboardMetrics["last"]): Promise<ContinueLesson> {
@@ -36,11 +83,16 @@ export async function resolveContinueLesson(last: DashboardMetrics["last"]): Pro
   };
   const cfg = map[last.type];
   if (!cfg) return null;
-  const { data } = await (supabase as any).from(cfg.table).select(cfg.select).eq("id", last.id).maybeSingle();
-  return {
-    ...last,
-    title: String(data?.[cfg.title] ?? `${last.type} ${last.level}`),
-    subtitle: String(data?.[cfg.subtitle] ?? `Lanjutkan materi ${last.level}`),
-    to: cfg.route,
-  };
+  try {
+    const { data } = await (supabase as any).from(cfg.table).select(cfg.select).eq("id", last.id).maybeSingle();
+    return {
+      ...last,
+      title: String(data?.[cfg.title] ?? `${last.type} ${last.level}`),
+      subtitle: String(data?.[cfg.subtitle] ?? `Lanjutkan materi ${last.level}`),
+      to: cfg.route,
+    };
+  } catch (error) {
+    console.warn("Continue lesson fallback activated.", error);
+    return null;
+  }
 }
