@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Loader2, Mail, Lock, ArrowRight, BookOpen, Trophy, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,17 +20,37 @@ export const Route = createFileRoute("/auth")({
 
 type AuthMode = "login" | "signup";
 const CANONICAL_ORIGIN = "https://enonihongo.vercel.app";
-function getAuthRedirectUrl() { return `${CANONICAL_ORIGIN}/onboarding`; }
 
-async function continueAfterAuth(navigate: ReturnType<typeof useNavigate>) {
-  const { data, error } = await supabase.auth.getUser();
+// All OAuth/email callbacks go through `/`, because the root route owns the
+// PKCE code exchange. Sending Google directly to an authenticated route can
+// run the auth guard before the code is exchanged, which is especially racy
+// on iOS Safari.
+function getAuthRedirectUrl() { return `${CANONICAL_ORIGIN}/`; }
+
+function hardRedirectAfterAuth(completed: boolean) {
+  if (typeof window !== "undefined") {
+    window.location.replace(completed ? "/dashboard" : "/onboarding");
+  }
+}
+
+async function continueAfterAuth() {
+  const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
-  const completed = data.user?.user_metadata?.["onboarding_completed"] === true;
-  navigate({ to: completed ? "/dashboard" : "/onboarding", replace: true });
+  const user = data.session?.user;
+  if (!user) throw new Error("Sesi login tidak ditemukan.");
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("onboarding_completed")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const metadataCompleted = user.user_metadata?.["onboarding_completed"] === true;
+  const completed = profileError ? metadataCompleted : profile?.onboarding_completed === true;
+  hardRedirectAfterAuth(completed);
 }
 
 function AuthPage() {
-  const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
@@ -46,16 +66,36 @@ function AuthPage() {
     }
 
     let active = true;
+    const timeout = window.setTimeout(() => {
+      if (active) setChecking(false);
+    }, 5000);
+
     supabase.auth.getSession().then(async ({ data, error }) => {
       if (!active) return;
-      if (error) { setError(error.message); setChecking(false); return; }
-      if (data.session) {
-        try { await continueAfterAuth(navigate); }
-        catch (caught) { if (active) { setError(caught instanceof Error ? caught.message : "Sesi tidak dapat diverifikasi."); setChecking(false); } }
-      } else setChecking(false);
+      if (error) {
+        setError(error.message);
+        setChecking(false);
+        return;
+      }
+      if (!data.session) {
+        setChecking(false);
+        return;
+      }
+      try {
+        await continueAfterAuth();
+      } catch (caught) {
+        if (active) {
+          setError(caught instanceof Error ? caught.message : "Sesi tidak dapat diverifikasi.");
+          setChecking(false);
+        }
+      }
     });
-    return () => { active = false; };
-  }, [navigate]);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+    };
+  }, []);
 
   async function submitEmailAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,12 +109,12 @@ function AuthPage() {
       if (mode === "signup") {
         const { data, error: signUpError } = await supabase.auth.signUp({ email: normalizedEmail, password, options: { emailRedirectTo: getAuthRedirectUrl() } });
         if (signUpError) throw signUpError;
-        if (data.session) await continueAfterAuth(navigate);
+        if (data.session) await continueAfterAuth();
         else { toast.success("Pendaftaran berhasil. Periksa email untuk verifikasi akun."); setMode("login"); }
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
         if (signInError) throw signInError;
-        await continueAfterAuth(navigate);
+        await continueAfterAuth();
       }
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Autentikasi gagal.";
@@ -85,13 +125,19 @@ function AuthPage() {
 
   async function signInWithGoogle() {
     if (loading) return;
-    setError(null); setLoading(true);
+    setError(null);
+    setLoading(true);
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: getAuthRedirectUrl() } });
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: getAuthRedirectUrl() },
+      });
       if (oauthError) throw oauthError;
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Gagal masuk dengan Google.";
-      setError(message); toast.error(message); setLoading(false);
+      setError(message);
+      toast.error(message);
+      setLoading(false);
     }
   }
 
