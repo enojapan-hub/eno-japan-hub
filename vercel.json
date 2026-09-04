@@ -4,6 +4,30 @@
   "git": {
     "deploymentEnabled": true
   },
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "eno-japan-hub-enonihongo.vercel.app"
+        }
+      ],
+      "destination": "https://enonihongo.vercel.app/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "eno-japan-hub-git-main-enonihongo.vercel.app"
+        }
+      ],
+      "destination": "https://enonihongo.vercel.app/:path*",
+      "permanent": true
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/translation",
