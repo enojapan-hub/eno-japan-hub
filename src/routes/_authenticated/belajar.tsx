@@ -1,68 +1,72 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { BookOpen, ChevronRight, FileText, Headphones, Languages, NotebookTabs } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { fetchKanjiList, fetchVocabList, fetchGrammarList, type Level } from "@/lib/learn-queries";
+import { fetchGrammarList, fetchKanjiList, fetchListeningList, fetchMyProgress, fetchPassages, fetchVocabList, type Level } from "@/lib/learn-queries";
 import { fetchTargetLevel } from "@/lib/target-level";
 
 export const Route = createFileRoute("/_authenticated/belajar")({
-  head: () => ({ meta: [{ title: "Materi — ENO NIHONGO" }, { name: "description", content: "Perpustakaan materi JLPT sesuai level aktif." }] }),
+  head: () => ({ meta: [{ title: "Materi — ENO NIHONGO" }] }),
   component: BelajarPage,
 });
 
-const sections = [
-  { to: "/kanji", jp: "漢字", label: "Kanji", desc: "Daftar kanji per level dan bab, dengan detail yang dapat digeser kanan-kiri." },
-  { to: "/kotoba", jp: "言葉", label: "Kosakata", desc: "Kosakata disusun per bab. Buka item untuk melihat detail penggunaan dan contoh." },
-  { to: "/bunpo", jp: "文法", label: "Bunpou", desc: "Grammar per bab dengan struktur, fungsi, contoh benar/salah, dan perbandingan pola." },
-  { to: "/dokkai", jp: "読解", label: "Dokkai", desc: "Bacaan pendek, sedang, panjang, dan gaya JLPT dengan reader penuh." },
-  { to: "/listening", jp: "聴解", label: "Choukai", desc: "Audio, pertanyaan, pilihan jawaban, transcript, dan penjelasan." },
-] as const;
+const LEVELS: Level[] = ["N5", "N4", "N3", "N2", "N1"];
 
-function lessonNumbers(rows: Array<{ lesson_number?: number | null }>) {
-  return [...new Set(rows.map((row) => row.lesson_number).filter((n): n is number => typeof n === "number"))].sort((a, b) => a - b);
-}
+function pct(done:number,total:number){return total > 0 ? Math.min(100, Math.round(done / total * 100)) : 0}
 
-function BelajarPage() {
-  const { data: targetLevel, isLoading: levelLoading } = useQuery({ queryKey: ["target-level"], queryFn: fetchTargetLevel, retry: 1 });
-  const level: Level = targetLevel ?? "N5";
-  const kanji = useQuery({ queryKey: ["learning-roadmap-kanji", level], queryFn: () => fetchKanjiList(level), enabled: !!targetLevel, retry: 1 });
-  const vocab = useQuery({ queryKey: ["learning-roadmap-vocab", level], queryFn: () => fetchVocabList(level), enabled: !!targetLevel, retry: 1 });
-  const grammar = useQuery({ queryKey: ["learning-roadmap-grammar", level], queryFn: () => fetchGrammarList(level), enabled: !!targetLevel, retry: 1 });
+function BelajarPage(){
+  const target = useQuery({ queryKey:["target-level"], queryFn:fetchTargetLevel, retry:1 });
+  const level:Level = target.data ?? "N5";
+  const kanji = useQuery({ queryKey:["materi-kanji",level], queryFn:()=>fetchKanjiList(level), enabled:!!target.data });
+  const vocab = useQuery({ queryKey:["materi-vocab",level], queryFn:()=>fetchVocabList(level), enabled:!!target.data });
+  const grammar = useQuery({ queryKey:["materi-grammar",level], queryFn:()=>fetchGrammarList(level), enabled:!!target.data });
+  const passages = useQuery({ queryKey:["materi-reading"], queryFn:fetchPassages });
+  const listening = useQuery({ queryKey:["materi-listening"], queryFn:fetchListeningList });
+  const progress = useQuery({ queryKey:["my-progress"], queryFn:fetchMyProgress, staleTime:15_000 });
 
-  const kLessons = lessonNumbers((kanji.data ?? []) as Array<{ lesson_number?: number | null }>);
-  const vLessons = lessonNumbers((vocab.data ?? []) as Array<{ lesson_number?: number | null }>);
-  const gLessons = lessonNumbers((grammar.data ?? []) as Array<{ lesson_number?: number | null }>);
-  const allLessons = [...new Set([...kLessons, ...vLessons, ...gLessons])].sort((a, b) => a - b);
-  const loading = kanji.isLoading || vocab.isLoading || grammar.isLoading;
+  const rows = progress.data?.progress ?? [];
+  const learned = (type:string) => rows.filter((r:any)=>r.level===level && r.item_type===type && (r.status==="learning" || r.status==="mastered")).length;
+  const mastered = (type:string) => rows.filter((r:any)=>r.level===level && r.item_type===type && r.status==="mastered").length;
 
-  return (
-    <AppShell compact title="Materi">
-      <div className="mx-auto max-w-3xl space-y-4">
-        <section className="flex items-end justify-between gap-3">
-          <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">Perpustakaan Belajar</p><h1 className="mt-1 text-[20px] font-bold tracking-tight">Materi</h1><p className="mt-1 text-[10px] text-muted-foreground">Pilih kategori lalu lanjutkan sesuai bab.</p></div>
-          <div className="rounded-xl border bg-card px-3 py-2 text-right"><p className="text-[8px] text-muted-foreground">Level aktif</p><p className="text-[14px] font-bold text-primary">{levelLoading ? "…" : level}</p></div>
-        </section>
+  const readingRows=(passages.data??[]).filter((r:any)=>r.level===level);
+  const listeningRows=(listening.data??[]).filter((r:any)=>r.level===level);
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {sections.map((section) => (
-            <Link key={section.to} to={section.to} className="group block focus:outline-none">
-              <Card className="h-full rounded-2xl border-border/70 transition group-hover:border-primary/45 group-hover:shadow-sm">
-                <CardHeader className="flex flex-row items-start justify-between gap-2 p-3 pb-1.5">
-                  <div className="min-w-0"><span lang="ja" className="font-jp text-[24px] font-semibold leading-none text-primary">{section.jp}</span><CardTitle className="mt-1.5 text-[12px]">{section.label}</CardTitle></div>
-                  <Badge variant="secondary" className="shrink-0 px-1.5 py-0 text-[8px]">{level}</Badge>
-                </CardHeader>
-                <CardContent className="p-3 pt-1"><p className="line-clamp-3 text-[9px] leading-4 text-muted-foreground">{section.desc}</p><p className="mt-2 text-[9px] font-semibold text-primary">Buka →</p></CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+  const cards = [
+    {to:"/kanji",label:"Kanji",icon:"井",tone:"bg-emerald-100 text-emerald-700",total:kanji.data?.length??0,done:learned("kanji"),meta:`${kanji.data?.length??0} kanji · ${learned("kanji")} dipelajari`},
+    {to:"/kotoba",label:"Kosakata",icon:BookOpen,tone:"bg-rose-100 text-rose-600",total:vocab.data?.length??0,done:learned("vocabulary"),meta:`${vocab.data?.length??0} kata · ${learned("vocabulary")} dipelajari`},
+    {to:"/bunpo",label:"Bunpou",icon:FileText,tone:"bg-blue-100 text-blue-600",total:grammar.data?.length??0,done:learned("grammar"),meta:`${grammar.data?.length??0} pola · ${learned("grammar")} dipelajari`},
+    {to:"/dokkai",label:"Dokkai",icon:NotebookTabs,tone:"bg-orange-100 text-orange-600",total:readingRows.length,done:learned("reading"),meta:`${readingRows.length} bacaan · ${learned("reading")} selesai`},
+    {to:"/listening",label:"Choukai",icon:Headphones,tone:"bg-sky-100 text-sky-600",total:listeningRows.length,done:learned("listening"),meta:`${listeningRows.length} latihan · ${learned("listening")} selesai`},
+  ] as const;
 
-        <section>
-          <div className="mb-2 flex items-center justify-between px-1"><h2 className="text-[13px] font-semibold">Bab tersedia</h2><span className="text-[9px] text-muted-foreground">{loading ? "Memuat…" : `${allLessons.length} bab`}</span></div>
-          {allLessons.length ? <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">{allLessons.slice(0, 18).map((lesson) => <div key={lesson} className="rounded-xl border bg-card px-2 py-2.5 text-center"><p className="text-[9px] text-muted-foreground">Bab</p><p className="text-[13px] font-bold">{lesson}</p></div>)}</div> : <Card className="rounded-2xl"><CardContent className="p-4 text-[10px] text-muted-foreground">Bab akan muncul setelah data level aktif selesai dimuat.</CardContent></Card>}
-        </section>
-      </div>
-    </AppShell>
-  );
+  return <AppShell compact title="Materi"><div className="mx-auto w-full max-w-md pb-2">
+    <section className="mb-3">
+      <h1 className="text-[20px] font-bold tracking-tight">Materi</h1>
+      <p className="mt-0.5 text-[10px] text-muted-foreground">Pilih level dan kategori materi</p>
+    </section>
+
+    <div className="mb-3 grid grid-cols-5 gap-1.5 rounded-xl border bg-card p-1.5">
+      {LEVELS.map(l=><div key={l} className={`grid h-8 place-items-center rounded-lg text-[10px] font-semibold ${l===level?"bg-primary text-primary-foreground shadow-sm":"text-muted-foreground"}`}>{l}</div>)}
+    </div>
+
+    <div className="space-y-2">
+      {cards.map((card)=>{
+        const Icon=card.icon;
+        const percent=pct(card.done,card.total);
+        return <Link key={card.to} to={card.to} className="flex items-center gap-3 rounded-2xl border bg-card px-3 py-3 shadow-[0_1px_3px_rgba(0,0,0,.04)] transition active:scale-[.995]">
+          <span className={`grid size-12 shrink-0 place-items-center rounded-xl ${card.tone}`}>{typeof Icon==="string"?<span className="font-jp text-[26px] font-bold">{Icon}</span>:<Icon className="size-6"/>}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2"><p className="text-[12px] font-bold">{card.label}</p><ChevronRight className="size-4 text-muted-foreground"/></div>
+            <p className="mt-0.5 truncate text-[9px] text-muted-foreground">{card.meta}</p>
+            <div className="mt-2 flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{width:`${percent}%`}}/></div><span className="w-8 text-right text-[9px] font-semibold text-muted-foreground">{percent}%</span></div>
+          </div>
+        </Link>
+      })}
+    </div>
+
+    <div className="mt-3 rounded-2xl bg-emerald-50/80 px-4 py-3 text-center">
+      <p className="text-[10px] leading-4 text-emerald-900">Konsistensi hari ini,<br/>hasil luar biasa nanti.</p>
+      <p lang="ja" className="mt-1 font-jp text-[11px] font-semibold text-emerald-700">継続は力なり</p>
+    </div>
+  </div></AppShell>
 }
