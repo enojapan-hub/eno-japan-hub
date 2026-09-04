@@ -15,6 +15,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/layout/BrandMark";
+import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { to: "/target", label: "Target", icon: Target },
@@ -36,12 +37,29 @@ type Props = {
 export function AppShell({ title, description, backTo, backLabel = "Kembali", compact = false, children }: Props) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [darkMode, setDarkMode] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("enonihongo-theme") === "dark";
     setDarkMode(saved);
     document.documentElement.classList.toggle("dark", saved);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    async function loadUnread() {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) { if (active) setUnreadNotifications(0); return; }
+      const { count } = await supabase
+        .from("user_notifications" as never)
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", auth.user.id)
+        .is("read_at", null);
+      if (active) setUnreadNotifications(count ?? 0);
+    }
+    void loadUnread();
+    return () => { active = false; };
+  }, [pathname]);
 
   function toggleTheme() {
     setDarkMode((current) => {
@@ -71,10 +89,10 @@ export function AppShell({ title, description, backTo, backLabel = "Kembali", co
 
           <div className="flex items-center gap-0.5">
             {!backTo && (
-              <Button variant="ghost" size="icon" className="relative size-9 rounded-xl" title="Pemberitahuan" aria-label="Pemberitahuan">
+              <Link to="/notifikasi" className="relative grid size-9 place-items-center rounded-xl text-muted-foreground transition hover:bg-muted/60 hover:text-foreground" title="Pemberitahuan" aria-label={`Pemberitahuan${unreadNotifications ? `, ${unreadNotifications} belum dibaca` : ""}`}>
                 <Bell className="size-[17px]" />
-                <span className="absolute right-2 top-2 size-1.5 rounded-full bg-destructive" />
-              </Button>
+                {unreadNotifications > 0 && <span className="absolute right-1.5 top-1.5 grid min-w-3.5 place-items-center rounded-full bg-destructive px-1 text-[8px] font-bold leading-3.5 text-destructive-foreground">{unreadNotifications > 9 ? "9+" : unreadNotifications}</span>}
+              </Link>
             )}
             <Button variant="ghost" size="icon" className="size-9 rounded-xl" title={darkMode ? "Mode terang" : "Mode gelap"} onClick={toggleTheme} aria-label={darkMode ? "Mode terang" : "Mode gelap"}>
               {darkMode ? <Sun className="size-[17px]" /> : <Moon className="size-[17px]" />}
