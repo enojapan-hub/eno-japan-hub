@@ -5,13 +5,13 @@ export function BrandMark({ size = "sm" }: { size?: "sm" | "lg" }) {
         aria-hidden
         className={
           size === "lg"
-            ? "grid size-11 place-items-center rounded-xl bg-primary text-xl font-bold text-primary-foreground"
-            : "grid size-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground"
+            ? "grid size-12 place-items-center rounded-xl bg-primary text-[22px] font-bold text-primary-foreground"
+            : "grid size-9 place-items-center rounded-lg bg-primary text-[16px] font-bold text-primary-foreground"
         }
       >
         <span lang="ja" className="font-jp">日</span>
       </span>
-      <span className={size === "lg" ? "text-xl font-semibold tracking-tight" : "text-sm font-semibold tracking-tight"}>
+      <span className={size === "lg" ? "text-[22px] font-semibold tracking-tight" : "text-[15px] font-semibold tracking-tight"}>
         enonihongo
       </span>
     </span>
