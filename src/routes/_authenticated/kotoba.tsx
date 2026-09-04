@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, Star, Volume2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, Star, Volume2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { fetchVocabList, markItemLearned, asExamples, type Level, type VocabSense } from "@/lib/learn-queries";
@@ -10,6 +10,12 @@ import { fetchTargetLevel } from "@/lib/target-level";
 export const Route=createFileRoute("/_authenticated/kotoba")({component:KotobaPage});
 type VocabRow={id:string;term:string;reading:string|null;romaji:string|null;meaning_id:string|null;part_of_speech:string|null;examples:unknown;level:Level;source_book?:string|null;lesson_number?:number|null;lesson_title?:string|null;source_meaning_id?:string|null;senses?:VocabSense[]};
 const tones=["bg-rose-50 text-rose-500","bg-amber-50 text-amber-500","bg-emerald-50 text-emerald-600","bg-sky-50 text-sky-600"];
+const extraKey=-1;
+
+function displayChapter(level:Level, raw:number){
+  if(level==="N4" && raw>=26 && raw<=50) return raw-25;
+  return raw;
+}
 
 function KotobaPage(){
   const {data:targetLevel,isLoading:levelLoading,error:levelError}=useQuery({queryKey:["target-level"],queryFn:fetchTargetLevel,retry:1});
@@ -17,19 +23,24 @@ function KotobaPage(){
   const {data,isLoading,error}=useQuery({queryKey:["vocab",level],queryFn:()=>fetchVocabList(level),enabled:!!targetLevel,retry:1});
   const allCards=(data??[]) as VocabRow[];
   const lessons=useMemo(()=>[...new Set(allCards.map(x=>x.lesson_number).filter((n):n is number=>typeof n==="number"))].sort((a,b)=>a-b),[allCards]);
+  const extras=useMemo(()=>allCards.filter(x=>x.lesson_number==null),[allCards]);
   const [lesson,setLesson]=useState<number|null>(null);const [index,setIndex]=useState<number|null>(null);const [learned,setLearned]=useState<Record<string,boolean>>({});const [review,setReview]=useState<Record<string,boolean>>({});const touch=useRef<number|null>(null);const qc=useQueryClient();
-  useEffect(()=>{if(lessons.length)setLesson(c=>c&&lessons.includes(c)?c:lessons[0])},[level,lessons.join(",")]);
-  const cards=lesson==null?allCards:allCards.filter(x=>x.lesson_number===lesson);const item=index==null?null:cards[index];
+  useEffect(()=>{if(lessons.length)setLesson(c=>c!==null&&(c===extraKey||lessons.includes(c))?c:lessons[0]);else if(extras.length)setLesson(extraKey)},[level,lessons.join(","),extras.length]);
+  const cards=lesson===extraKey?extras:lesson==null?allCards:allCards.filter(x=>x.lesson_number===lesson);
+  const item=index==null?null:cards[index];
   const senses=useMemo(()=>item?(item.senses??[]).filter(s=>s.meaning_id?.trim()):[],[item]);
   const examples=useMemo(()=>item?[...asExamples(item.examples),...senses.flatMap(s=>asExamples(s.examples))].slice(0,4):[],[item,senses]);
   const mutation=useMutation({mutationFn:(id:string)=>markItemLearned({itemType:"vocabulary",itemId:id,level}),onSuccess:(_,id)=>{setLearned(v=>({...v,[id]:true}));void qc.invalidateQueries({queryKey:["my-progress"]})}});
   const speak=(t:string)=>{if(!window.speechSynthesis)return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="ja-JP";u.rate=.85;window.speechSynthesis.speak(u)};
   const prev=()=>setIndex(i=>i==null?0:Math.max(0,i-1));const next=()=>setIndex(i=>i==null?0:Math.min(cards.length-1,i+1));const finishSwipe=(x:number)=>{if(touch.current==null)return;const d=x-touch.current;if(Math.abs(d)>45)(d<0?next:prev)();touch.current=null};
+  const sparse=lesson!==extraKey && cards.length>0 && cards.length<10;
 
   return <AppShell title="Kotoba" backTo="/belajar" backLabel="Materi" compact>{levelLoading?<p className="py-8 text-center text-xs text-muted-foreground">Memuat level…</p>:levelError?<p className="py-8 text-center text-xs text-destructive">Level profil tidak dapat dimuat.</p>:<div className="mx-auto max-w-md">
     {index==null?<>
       <div className="mb-3 flex items-end justify-between"><h1 className="text-[20px] font-bold tracking-tight">Kosakata {level}</h1><span className="text-[11px] font-semibold text-muted-foreground">{allCards.length}</span></div>
-      {lessons.length>0&&<div className="relative mb-3"><select value={lesson??""} onChange={e=>{setLesson(Number(e.target.value));setIndex(null)}} className="h-10 w-full appearance-none rounded-xl border bg-background px-3 pr-9 text-[12px] font-medium outline-none focus:border-primary"><option value="">Pilih bab</option>{lessons.map(n=><option key={n} value={n}>Bab {n}{allCards.find(x=>x.lesson_number===n)?.lesson_title?` — ${allCards.find(x=>x.lesson_number===n)?.lesson_title}`:""}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/></div>}
+      {(lessons.length>0||extras.length>0)&&<div className="relative mb-3"><select value={lesson??""} onChange={e=>{setLesson(Number(e.target.value));setIndex(null)}} className="h-10 w-full appearance-none rounded-xl border bg-background px-3 pr-9 text-[12px] font-medium outline-none focus:border-primary"><option value="">Pilih bab</option>{lessons.map(n=><option key={n} value={n}>Bab {displayChapter(level,n)} · {allCards.filter(x=>x.lesson_number===n).length} kata</option>)}{extras.length>0&&<option value={extraKey}>Materi tambahan · {extras.length} kata</option>}</select><ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/></div>}
+      {sparse&&<div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] leading-4 text-amber-800"><AlertTriangle className="mt-0.5 size-3.5 shrink-0"/><p>Bab {displayChapter(level,lesson!)} baru memiliki {cards.length} kosakata yang benar-benar terpetakan di database. Saya tidak menggabungkan kosakata dari bab lain secara sembarang.</p></div>}
+      {extras.length>0&&lesson!==extraKey&&<p className="mb-3 text-[10px] leading-4 text-muted-foreground">Ada {extras.length} kosakata {level} tambahan yang belum memiliki nomor bab. Semuanya tetap bisa dibuka dari pilihan “Materi tambahan”.</p>}
       {error&&<p className="mb-3 text-xs text-destructive">Kosakata gagal dimuat.</p>}
       {isLoading?<p className="py-10 text-center text-xs text-muted-foreground">Memuat materi…</p>:<div className="space-y-2">{cards.map((w,i)=><button key={`${w.id}-${i}`} onClick={()=>setIndex(i)} className="flex w-full items-center gap-3 rounded-xl border bg-card px-3 py-2.5 text-left transition hover:border-primary/40 hover:shadow-sm"><span className={`grid size-7 shrink-0 place-items-center rounded-lg text-[10px] font-bold ${tones[i%tones.length]}`}>語</span><div className="min-w-0 flex-1"><div className="font-jp text-[14px] font-bold">{w.term}{w.reading&&<span className="ml-1.5 text-[10px] font-normal text-muted-foreground">（{w.reading}）</span>}</div><p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">{w.meaning_id||w.source_meaning_id||"Arti belum tersedia"}</p></div>{learned[w.id]&&<Check className="size-3.5 text-primary"/>}<ChevronRight className="size-4 text-muted-foreground"/></button>)}</div>}
     </>:item?<div onTouchStart={e=>touch.current=e.touches[0].clientX} onTouchEnd={e=>finishSwipe(e.changedTouches[0].clientX)}>
