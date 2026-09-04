@@ -25,10 +25,12 @@ export async function fetchAdaptivePlan(): Promise<AdaptivePlan> {
   if (authError || !auth.user) return { active: false, targetLevel: null, targetDate: null, daysLeft: null, tasks: [], target: 0, completed: 0 };
 
   const client = supabase as any;
+  await client.rpc("ensure_active_study_plan", {});
   await client.rpc("generate_daily_study_tasks", {});
   await client.rpc("sync_daily_study_task_progress", {});
 
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
   const [{ data: plans }, { data: tasks }] = await Promise.all([
     client.from("study_plans").select("id,target_level,target_date,status").eq("user_id", auth.user.id).eq("status", "active").order("created_at", { ascending: false }).limit(1),
     client.from("daily_study_tasks").select("id,task_type,target_count,completed_count,priority,reason,metadata").eq("user_id", auth.user.id).eq("study_date", today).order("priority", { ascending: false }),
@@ -40,8 +42,8 @@ export async function fetchAdaptivePlan(): Promise<AdaptivePlan> {
   const taskRows = (tasks ?? []) as AdaptiveTask[];
   const target = taskRows.reduce((sum, task) => sum + Number(task.target_count || 0), 0);
   const completed = taskRows.reduce((sum, task) => sum + Math.min(Number(task.completed_count || 0), Number(task.target_count || 0)), 0);
-  const targetMs = new Date(`${plan.target_date}T00:00:00`).getTime();
-  const todayMs = new Date(`${today}T00:00:00`).getTime();
+  const targetMs = new Date(`${plan.target_date}T00:00:00+09:00`).getTime();
+  const todayMs = new Date(`${today}T00:00:00+09:00`).getTime();
   const daysLeft = Math.max(0, Math.ceil((targetMs - todayMs) / 86400000));
 
   return {
