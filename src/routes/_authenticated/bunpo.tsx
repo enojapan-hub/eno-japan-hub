@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { fetchGrammarList, markItemLearned, asExamples, type Level } from "@/lib/learn-queries";
 import { fetchTargetLevel } from "@/lib/target-level";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route=createFileRoute("/_authenticated/bunpo")({component:BunpoPage});
 const split=(v?:string|null)=>v?.split(/\n|\\n|;/).map(x=>x.trim()).filter(Boolean)??[];
@@ -15,12 +16,14 @@ function BunpoPage(){
   const {data:targetLevel,isLoading:levelLoading,error:levelError}=useQuery({queryKey:["target-level"],queryFn:fetchTargetLevel});
   const level:Level=targetLevel??"N5";
   const {data,isLoading,error}=useQuery({queryKey:["grammar",level],queryFn:()=>fetchGrammarList(level),enabled:!!targetLevel});
+  const {data:masteredRows}=useQuery({queryKey:["mastered-items","grammar",level],enabled:!!targetLevel,queryFn:async()=>{const {data:auth}=await supabase.auth.getUser();if(!auth.user)return [] as Array<{item_id:string}>;const {data,error}=await supabase.from("user_item_progress").select("item_id").eq("user_id",auth.user.id).eq("item_type","grammar").eq("level",level).eq("status","mastered");if(error)throw error;return (data??[]) as Array<{item_id:string}>;}});
   const cards=useMemo(()=>((data??[]).filter(c=>usable(c.meaning_id))),[data]);
   const lessons=useMemo(()=>[...new Set(cards.map(c=>c.lesson_number).filter((n):n is number=>typeof n==="number"))].sort((a,b)=>a-b),[cards]);
   const [lesson,setLesson]=useState<number|null>(null);const [index,setIndex]=useState<number|null>(null);const [learned,setLearned]=useState<Record<string,boolean>>({});const touch=useRef<number|null>(null);const qc=useQueryClient();
+  useEffect(()=>{if(masteredRows)setLearned(Object.fromEntries(masteredRows.map(r=>[r.item_id,true])))},[masteredRows]);
   const activeLesson=lesson??lessons[0]??null;const list=activeLesson==null?cards:cards.filter(c=>c.lesson_number===activeLesson);const item=index==null?null:list[index];
   const examples=item?asExamples(item.examples):[];const structures=item?split(item.structure):[];
-  const mutation=useMutation({mutationFn:(id:string)=>markItemLearned({itemType:"grammar",itemId:id,level}),onSuccess:(_,id)=>{setLearned(v=>({...v,[id]:true}));void qc.invalidateQueries({queryKey:["my-progress"]})}});
+  const mutation=useMutation({mutationFn:(id:string)=>markItemLearned({itemType:"grammar",itemId:id,level}),onSuccess:(_,id)=>{setLearned(v=>({...v,[id]:true}));void qc.invalidateQueries({queryKey:["my-progress"]});void qc.invalidateQueries({queryKey:["mastered-items","grammar",level]});void qc.invalidateQueries({queryKey:["leaderboard"]})}});
   const prev=()=>setIndex(i=>i==null?0:Math.max(0,i-1));const next=()=>setIndex(i=>i==null?0:Math.min(list.length-1,i+1));const finishSwipe=(x:number)=>{if(touch.current==null)return;const d=x-touch.current;if(Math.abs(d)>45)(d<0?next:prev)();touch.current=null};
 
   return <AppShell title="Bunpō" backTo="/belajar" backLabel="Materi" compact>{levelLoading?<p className="py-8 text-center text-xs text-muted-foreground">Memuat level…</p>:levelError?<p className="py-8 text-center text-xs text-destructive">Level profil tidak dapat dimuat.</p>:<div className="mx-auto max-w-md">
@@ -38,7 +41,7 @@ function BunpoPage(){
         {structures.length>0&&<section className="border-t py-3"><h2 className="text-[10px] font-bold text-muted-foreground">Struktur</h2><div className="mt-1 space-y-1">{structures.map((s,i)=><p key={i} className="font-jp text-[12px] leading-5">{s}</p>)}</div></section>}
         {examples.length>0&&<section className="border-t py-3"><h2 className="text-[10px] font-bold text-emerald-600">Contoh Benar ✓</h2>{examples.slice(0,3).map((e,i)=><div key={i} className="mt-2 text-[11px] leading-5"><p lang="ja" className="font-jp text-[13px]">{e.jp}</p>{e.reading&&<p className="text-muted-foreground">{e.reading}</p>}{e.id&&<p className="text-muted-foreground">{e.id}</p>}</div>)}</section>}
         {item.source_book&&<section className="border-t py-3"><h2 className="text-[10px] font-bold text-muted-foreground">Catatan</h2><p className="mt-1 text-[11px] leading-5 text-muted-foreground">Sumber: {item.source_book}{item.lesson_number?` · Bab ${item.lesson_number}`:""}</p></section>}
-        <Button className="mt-2 h-10 w-full rounded-full text-[11px]" onClick={()=>mutation.mutate(item.id)} disabled={mutation.isPending||learned[item.id]}>{learned[item.id]?<><Check className="mr-1.5 size-3.5"/>Sudah dipelajari</>:"Tandai sudah dipelajari"}</Button>
+        <Button className="mt-2 h-10 w-full rounded-full text-[11px]" onClick={()=>mutation.mutate(item.id)} disabled={mutation.isPending||learned[item.id]}>{learned[item.id]?<><Check className="mr-1.5 size-3.5"/>Sudah Hafal</>:"Sudah Hafal · +5 XP +5 Poin"}</Button>
       </div>
     </div>:<div className="rounded-xl border p-6 text-center text-xs text-muted-foreground">Belum ada Bunpō untuk {level}.</div>}
   </div>}</AppShell>
