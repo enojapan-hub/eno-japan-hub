@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ChevronDown, Pause, Play, Volume2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Pause, Play, Volume2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { fetchPassageDetail } from "@/lib/learn-queries";
+import { fetchPassageDetail, type Level } from "@/lib/learn-queries";
+import { markContentMastered } from "@/lib/progress-actions";
 
 export const Route = createFileRoute("/_authenticated/dokkai/$id")({ component: DokkaiDetail });
 type FuriganaPassage = { body_furigana?: string | null };
@@ -31,12 +32,14 @@ function speakJapanese(text: string, onEnd?: () => void) {
 
 function DokkaiDetail() {
   const { id } = Route.useParams();
+  const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({ queryKey: ["passage", id], queryFn: () => fetchPassageDetail(id) });
   const [showFurigana, setShowFurigana] = useState(true);
   const [fontSize, setFontSize] = useState(1);
   const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [checked, setChecked] = useState(false);
+  const [completed, setCompleted] = useState(false);
 
   useEffect(() => () => { if ("speechSynthesis" in window) window.speechSynthesis.cancel(); }, []);
   const p = data?.passage;
@@ -44,6 +47,10 @@ function DokkaiDetail() {
   const questions = (data?.questions ?? []) as PassageQuestion[];
   const paragraphs = useMemo(() => splitParagraphs(String(p?.body_jp ?? "")), [p?.body_jp]);
   const furiganaParagraphs = useMemo(() => splitParagraphs(String(enriched?.body_furigana ?? "")), [enriched?.body_furigana]);
+  const completeMutation = useMutation({
+    mutationFn: () => markContentMastered({ itemType: "reading", itemId: id, level: String(p?.level ?? "N5") as Level, durationSeconds: Math.max(60, Number(p?.estimated_minutes ?? 1) * 60) }),
+    onSuccess: () => { setCompleted(true); void qc.invalidateQueries({ queryKey: ["dashboard-live"] }); void qc.invalidateQueries({ queryKey: ["my-progress"] }); },
+  });
 
   const readParagraph = (text: string, index: number) => {
     if (speakingIndex === index) { window.speechSynthesis.cancel(); setSpeakingIndex(null); return; }
@@ -53,6 +60,7 @@ function DokkaiDetail() {
     if (speakingIndex === -1) { window.speechSynthesis.cancel(); setSpeakingIndex(null); return; }
     speakJapanese(String(enriched?.body_furigana || p?.body_jp || ""), () => setSpeakingIndex(null)); setSpeakingIndex(-1);
   };
+  const checkAnswers = () => { setChecked(true); if (!completeMutation.isPending) completeMutation.mutate(); };
 
   if (isLoading) return <AppShell title="Dokkai"><p className="text-[12px] text-muted-foreground">Memuat bacaan…</p></AppShell>;
   if (error || !p) return <AppShell title="Dokkai"><p className="text-[12px] text-destructive">Bacaan tidak ditemukan atau gagal dimuat.</p></AppShell>;
@@ -77,18 +85,16 @@ function DokkaiDetail() {
       <article lang="ja" className="font-jp text-foreground" style={{fontSize:`${fontSize}rem`}}>
         {paragraphs.map((paragraph,index)=>{
           const reading = showFurigana && furiganaParagraphs[index] ? furiganaParagraphs[index] : paragraph;
-          return <div key={index} className="mb-5 last:mb-0">
-            <p className="whitespace-pre-wrap leading-[2] tracking-[0.01em]">{showFurigana&&furiganaParagraphs[index]?renderFurigana(reading):reading}</p>
-            <button type="button" onClick={()=>readParagraph(furiganaParagraphs[index]||paragraph,index)} className="mt-2 inline-flex items-center gap-1 text-[10px] font-medium text-primary">{speakingIndex===index?<Pause className="size-3"/>:<Play className="size-3"/>}Dengarkan paragraf {index+1}</button>
-          </div>;
+          return <div key={index} className="mb-5 last:mb-0"><p className="whitespace-pre-wrap leading-[2] tracking-[0.01em]">{showFurigana&&furiganaParagraphs[index]?renderFurigana(reading):reading}</p><button type="button" onClick={()=>readParagraph(furiganaParagraphs[index]||paragraph,index)} className="mt-2 inline-flex items-center gap-1 text-[10px] font-medium text-primary">{speakingIndex===index?<Pause className="size-3"/>:<Play className="size-3"/>}Dengarkan paragraf {index+1}</button></div>;
         })}
       </article>
 
       <div className="mt-6 space-y-2">
         <details className="group rounded-xl border bg-card px-3 py-2.5"><summary className="flex cursor-pointer list-none items-center justify-between text-[12px] font-semibold">Arti Seluruh Bagian<ChevronDown className="size-4 transition group-open:rotate-180"/></summary><p className="mt-3 whitespace-pre-wrap text-[12px] leading-6 text-muted-foreground">{normalizeBreaks(String(p.translation_id||"Terjemahan Indonesia belum tersedia."))}</p></details>
-        <details className="group rounded-xl border bg-card px-3 py-2.5"><summary className="flex cursor-pointer list-none items-center justify-between text-[12px] font-semibold">Pertanyaan<ChevronDown className="size-4 transition group-open:rotate-180"/></summary><div className="mt-3 space-y-4">{questions.length===0?<p className="text-[11px] text-muted-foreground">Belum ada soal untuk bacaan ini.</p>:questions.map((q,i)=><div key={q.id}><p className="text-[12px] font-semibold">{i+1}. {q.prompt}</p><div className="mt-2 space-y-1.5">{q.choices.map((choice,ci)=><button key={ci} type="button" onClick={()=>{setAnswers(a=>({...a,[q.id]:ci}));setChecked(false)}} className={`w-full rounded-lg border px-3 py-2 text-left text-[11px] ${answers[q.id]===ci?"border-primary bg-primary/5":"bg-background"}`}>{String.fromCharCode(65+ci)}. {choice}</button>)}</div>{checked&&answers[q.id]!==undefined&&<p className="mt-2 text-[10px] text-muted-foreground">{answers[q.id]===Number(q.correct_index)?"Benar.":q.explanation_id||"Belum tepat. Baca kembali bagian terkait."}</p>}</div>)}{questions.length>0&&<Button className="h-9 w-full rounded-lg text-[11px]" disabled={Object.keys(answers).length!==questions.length} onClick={()=>setChecked(true)}>Periksa Jawaban</Button>}</div></details>
+        <details className="group rounded-xl border bg-card px-3 py-2.5"><summary className="flex cursor-pointer list-none items-center justify-between text-[12px] font-semibold">Pertanyaan<ChevronDown className="size-4 transition group-open:rotate-180"/></summary><div className="mt-3 space-y-4">{questions.length===0?<p className="text-[11px] text-muted-foreground">Belum ada soal untuk bacaan ini.</p>:questions.map((q,i)=><div key={q.id}><p className="text-[12px] font-semibold">{i+1}. {q.prompt}</p><div className="mt-2 space-y-1.5">{q.choices.map((choice,ci)=><button key={ci} type="button" onClick={()=>{setAnswers(a=>({...a,[q.id]:ci}));setChecked(false)}} className={`w-full rounded-lg border px-3 py-2 text-left text-[11px] ${answers[q.id]===ci?"border-primary bg-primary/5":"bg-background"}`}>{String.fromCharCode(65+ci)}. {choice}</button>)}</div>{checked&&answers[q.id]!==undefined&&<p className="mt-2 text-[10px] text-muted-foreground">{answers[q.id]===Number(q.correct_index)?"Benar.":q.explanation_id||"Belum tepat. Baca kembali bagian terkait."}</p>}</div>)}{questions.length>0&&<Button className="h-9 w-full rounded-lg text-[11px]" disabled={Object.keys(answers).length!==questions.length||completeMutation.isPending} onClick={checkAnswers}>{completed?<><Check className="mr-1.5 size-3.5"/>Selesai</>:"Periksa Jawaban"}</Button>}</div></details>
         <details className="group rounded-xl border bg-card px-3 py-2.5"><summary className="flex cursor-pointer list-none items-center justify-between text-[12px] font-semibold">Kosakata Penting<ChevronDown className="size-4 transition group-open:rotate-180"/></summary><p className="mt-3 text-[11px] leading-5 text-muted-foreground">Kosakata penting akan ditampilkan dari data bacaan yang tersedia. Teks utama di atas selalu ditampilkan penuh tanpa dipotong.</p></details>
       </div>
+      {questions.length===0&&<Button className="mt-4 h-10 w-full rounded-full text-[11px]" disabled={completed||completeMutation.isPending} onClick={()=>completeMutation.mutate()}>{completed?<><Check className="mr-1.5 size-4"/>Selesai dibaca</>:"Tandai selesai membaca · +5 XP"}</Button>}
     </div>
   </AppShell>;
 }
