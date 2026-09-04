@@ -37,3 +37,4 @@ Build production menggunakan Vite + TanStack Start + Nitro dan dideploy ke Verce
 <!-- Vercel deployment retry: 2026-09-03 -->
 <!-- Profile RLS fix: 2026-09-03 -->
 <!-- Profile save verification: 2026-09-03 -->
+<!-- Indonesian-only content deployment: 2026-09-04 -->
