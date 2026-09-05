@@ -30,10 +30,10 @@ export function getAccountLevel(xp: number): AccountLevel {
 
 export const LEAGUES = [
   { name: "Bronze", minWeeklyXp: 0, rewardPoints: 25, rewardLabel: "25 Poin" },
-  { name: "Silver", minWeeklyXp: 500, rewardPoints: 50, rewardLabel: "50 Poin" },
-  { name: "Gold", minWeeklyXp: 1000, rewardPoints: 100, rewardLabel: "100 Poin" },
-  { name: "Platinum", minWeeklyXp: 2000, rewardPoints: 200, rewardLabel: "200 Poin" },
-  { name: "Diamond", minWeeklyXp: 3500, rewardPoints: 350, rewardLabel: "350 Poin" },
+  { name: "Silver", minWeeklyXp: 1500, rewardPoints: 50, rewardLabel: "50 Poin" },
+  { name: "Gold", minWeeklyXp: 3500, rewardPoints: 100, rewardLabel: "100 Poin" },
+  { name: "Platinum", minWeeklyXp: 7000, rewardPoints: 200, rewardLabel: "200 Poin" },
+  { name: "Diamond", minWeeklyXp: 12000, rewardPoints: 350, rewardLabel: "350 Poin" },
 ] as const;
 
 export type LeagueName = typeof LEAGUES[number]["name"];
