@@ -41,16 +41,12 @@ export default tseslint.config(
     files: ["**/*.{js,ts,tsx}"],
     plugins: {
       "@typescript-eslint": tseslint.plugin,
-      "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
     },
     rules: {
-      // Keep the CI gate useful immediately: correctness/syntax errors remain
-      // errors, while known legacy cleanup debt is visible as warnings until
-      // each module is modernized without changing production behaviour.
+      // Existing cleanup debt remains visible without masking syntax, invalid
+      // hooks usage, or restricted server/client imports that must still fail CI.
       "@typescript-eslint/no-explicit-any": "warn",
-      "react-hooks/purity": "warn",
-      "react-hooks/set-state-in-effect": "warn",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "prettier/prettier": "warn",
       "no-useless-escape": "warn",
