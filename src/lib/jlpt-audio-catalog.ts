@@ -23,6 +23,8 @@ export type JlptAudioSource = {
 // pauses in the source MP3 and cross-checked against the booklet structure:
 // Mondai 1 = 7 questions, Mondai 2 = 6, Mondai 3 = 5,
 // Mondai 4 = rapid-response/no picture section.
+// Public URL intentionally lives in this catalog so the simulation runner can
+// use source audio without depending on a private Google Drive streaming URL.
 export const JLPT_AUDIO_CATALOG: JlptAudioSource[] = [
   {
     level: "N5",
