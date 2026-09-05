@@ -34,6 +34,10 @@ const targets: Record<Level, Record<SimulationGroup, number>> = {
   N1: { vocabulary: 35, grammar_reading: 75, language_reading: 75, listening: 30 },
 };
 
+function looksLikeLegacyEnglishPrompt(text: string) {
+  return /\b(what is|which|choose|select|meaning of|reading of|correct answer|best answer)\b/i.test(text);
+}
+
 function normalize(rows: unknown[]): SimulationQuestion[] {
   return (rows as Array<Record<string, unknown>>)
     .map((q) => {
@@ -41,15 +45,21 @@ function normalize(rows: unknown[]): SimulationQuestion[] {
         q.listening && typeof q.listening === "object"
           ? (q.listening as Record<string, unknown>)
           : null;
+      const localizedChoices = Array.isArray(q.choices_id) ? q.choices_id.map(String) : [];
+      const localizedPrompt = typeof q.prompt_id === "string" ? q.prompt_id.trim() : "";
+      const hasLocalizedQuestion = localizedPrompt.length > 0 && localizedChoices.length === 4 && localizedChoices.every(Boolean);
+      const sourcePrompt = String(q.prompt ?? "");
+      const skill = typeof q.skill === "string" ? q.skill : null;
+      const isLegacyEnglishLexical = (skill === "kanji" || skill === "vocabulary") && !hasLocalizedQuestion && looksLikeLegacyEnglishPrompt(sourcePrompt);
 
       return {
         id: String(q.id),
-        prompt: String(q.prompt ?? ""),
+        prompt: hasLocalizedQuestion ? localizedPrompt : sourcePrompt,
         prompt_note: typeof q.prompt_note === "string" ? q.prompt_note : null,
-        choices: Array.isArray(q.choices) ? q.choices.map(String) : [],
+        choices: hasLocalizedQuestion ? localizedChoices : Array.isArray(q.choices) ? q.choices.map(String) : [],
         correct_index: Number(q.correct_index),
         explanation_id: typeof q.explanation_id === "string" ? q.explanation_id : null,
-        skill: typeof q.skill === "string" ? q.skill : null,
+        skill,
         questionType: typeof q.question_type === "string" ? q.question_type : null,
         audioUrl:
           listening && typeof listening.audio_url === "string" && listening.audio_url.trim()
@@ -69,15 +79,18 @@ function normalize(rows: unknown[]): SimulationQuestion[] {
         listeningSortOrder:
           listening && typeof listening.sort_order === "number" ? listening.sort_order : null,
         persistAnswer: true,
-      };
+        _skipLegacyEnglish: isLegacyEnglishLexical,
+      } as SimulationQuestion & { _skipLegacyEnglish: boolean };
     })
     .filter(
       (q) =>
+        !q._skipLegacyEnglish &&
         q.prompt.trim() &&
         q.choices.length === 4 &&
         q.correct_index >= 0 &&
         q.correct_index < 4,
-    );
+    )
+    .map(({ _skipLegacyEnglish: _ignored, ...q }) => q);
 }
 
 function normalizeDriveFallback(level: Level, skills: string[]): SimulationQuestion[] {
@@ -113,7 +126,7 @@ async function fetchSkill(level: Level, skill: string, limit: number) {
   const result = await supabase
     .from("questions")
     .select(
-      "id, prompt, prompt_note, choices, correct_index, explanation_id, level, skill, question_type, listening_id, listening:listening_id (id, title, audio_url, transcript_jp, sort_order)",
+      "id, prompt, prompt_id, prompt_note, choices, choices_id, correct_index, explanation_id, level, skill, question_type, listening_id, listening:listening_id (id, title, audio_url, transcript_jp, sort_order)",
     )
     .eq("is_published", true)
     .eq("level", level)
