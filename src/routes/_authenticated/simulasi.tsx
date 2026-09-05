@@ -1,175 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import {
-  ArrowRight,
-  BookOpen,
-  Crown,
-  Headphones,
-  Languages,
-  ListChecks,
-  LockKeyhole,
-  Timer,
-  Type,
-} from "lucide-react";
+import { ArrowRight, BookOpen, Crown, Headphones, Languages, ListChecks, LockKeyhole, Timer, Type } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import type { Level } from "@/lib/learn-queries";
 import { fetchFullSimulationAccess } from "@/lib/membership";
 
-export const Route = createFileRoute("/_authenticated/simulasi")({ component: SimulationPage });
-
-const levels: Level[] = ["N5", "N4", "N3", "N2", "N1"];
-const practiceLinks = [
-  {
-    key: "vocabulary",
-    jp: "文字・語彙",
-    label: "Latihan Kanji & Kosakata",
-    icon: Type,
-    tone: "bg-emerald-50 text-emerald-600",
-    to: "/quiz",
-  },
-  {
-    key: "grammar",
-    jp: "文法",
-    label: "Belajar & latihan Bunpou",
-    icon: Languages,
-    tone: "bg-amber-50 text-amber-600",
-    to: "/bunpo",
-  },
-  {
-    key: "reading",
-    jp: "読解",
-    label: "Latihan Dokkai",
-    icon: BookOpen,
-    tone: "bg-sky-50 text-sky-600",
-    to: "/dokkai",
-  },
-  {
-    key: "listening",
-    jp: "聴解",
-    label: "Latihan Choukai",
-    icon: Headphones,
-    tone: "bg-rose-50 text-rose-500",
-    to: "/choukai",
-  },
-] as const;
-
-function SimulationPage() {
-  const [level, setLevel] = useState<Level>("N3");
-  const access = useQuery({
-    queryKey: ["full-simulation-access"],
-    queryFn: fetchFullSimulationAccess,
-    staleTime: 30000,
-  });
-  const a = access.data;
-
-  return (
-    <AppShell title="Simulasi JLPT" compact>
-      <div className="mx-auto max-w-md">
-        <h1 className="text-[20px] font-bold">Simulasi JLPT</h1>
-        <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
-          Pilih level untuk simulasi penuh. Untuk latihan terpisah, gunakan modul belajar resmi di bawah.
-        </p>
-
-        <div className="mt-3 grid grid-cols-5 rounded-xl border bg-card p-1">
-          {levels.map((l) => (
-            <button
-              key={l}
-              onClick={() => setLevel(l)}
-              className={`h-8 rounded-lg text-[11px] font-semibold ${
-                level === l ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-              }`}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-
-        <section className="mt-4 rounded-2xl border bg-card p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-[14px] font-bold">JLPT {level} Mock Test #01</h2>
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                Runner utama ENO NIHONGO dengan timer, hasil, dan audio Choukai.
-              </p>
-            </div>
-            <span className="rounded-full bg-primary/10 px-2 py-1 text-[9px] font-bold text-primary">
-              {a?.plan?.toUpperCase() ?? "FREE"}
-            </span>
-          </div>
-
-          <div className="mt-3 space-y-2 text-[11px]">
-            <div className="flex items-center gap-2">
-              <Timer className="size-3.5 text-primary" />
-              <span>Waktu mengikuti struktur level JLPT</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <ListChecks className="size-3.5 text-primary" />
-              <span>Free: 1x simulasi penuh per bulan</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Crown className="size-3.5 text-primary" />
-              <span>Premium & Lifetime: simulasi penuh tanpa batas</span>
-            </div>
-          </div>
-
-          {a?.allowed !== false ? (
-            <Button asChild className="mt-4 h-10 w-full rounded-full text-[11px]">
-              <Link to="/simulasi/$level" params={{ level }}>
-                Mulai Simulasi Penuh
-                <ArrowRight className="ml-1.5 size-3.5" />
-              </Link>
-            </Button>
-          ) : (
-            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[10px] leading-4 text-amber-800">
-              <div className="flex items-center gap-2 font-semibold">
-                <LockKeyhole className="size-3.5" />
-                Batas akun Free bulan ini sudah terpakai.
-              </div>
-              <p className="mt-1">Upgrade Premium/Lifetime untuk simulasi penuh tanpa batas.</p>
-            </div>
-          )}
-        </section>
-
-        <section className="mt-4">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <h2 className="text-[12px] font-bold">Latihan terpisah</h2>
-            <span className="text-[9px] text-muted-foreground">Tidak memakai runner simulasi lama</span>
-          </div>
-          <div className="space-y-2">
-            {practiceLinks.map(({ key, jp, label, icon: Icon, tone, to }) => (
-              <Link
-                key={key}
-                to={to}
-                className="flex items-center gap-3 rounded-xl border bg-card px-3 py-3"
-              >
-                <span className={`grid size-8 place-items-center rounded-lg ${tone}`}>
-                  <Icon className="size-4" />
-                </span>
-                <span className="flex-1">
-                  <span className="block font-jp text-[13px] font-bold">{jp}</span>
-                  <span className="text-[10px] text-muted-foreground">{label}</span>
-                </span>
-                <ArrowRight className="size-4 text-muted-foreground" />
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-3 rounded-2xl border border-primary/20 bg-primary/[.04] p-4">
-          <div className="flex items-center gap-2">
-            <Crown className="size-4 text-primary" />
-            <h2 className="text-[12px] font-bold">ENO Monthly Exam</h2>
-          </div>
-          <p className="mt-1 text-[10px] leading-4 text-muted-foreground">
-            Ujian bulanan khusus Premium dan Lifetime.
-          </p>
-          <Button className="mt-3 h-9 w-full rounded-full text-[10px]" disabled={!a?.monthlyExam}>
-            {a?.monthlyExam ? "Ikuti Monthly Exam" : "Khusus Premium / Lifetime"}
-          </Button>
-        </section>
-      </div>
-    </AppShell>
-  );
+export const Route=createFileRoute("/_authenticated/simulasi")({component:SimulationPage});
+const levels:Level[]=["N5","N4","N3","N2","N1"];
+const sections=[{key:"vocabulary",jp:"文字・語彙",label:"Kanji & Kosakata",icon:Type,tone:"bg-emerald-50 text-emerald-600"},{key:"grammar",jp:"文法",label:"Bunpou",icon:Languages,tone:"bg-amber-50 text-amber-600"},{key:"reading",jp:"読解",label:"Dokkai",icon:BookOpen,tone:"bg-sky-50 text-sky-600"},{key:"listening",jp:"聴解",label:"Choukai",icon:Headphones,tone:"bg-rose-50 text-rose-500"}] as const;
+function SimulationPage(){
+ const[level,setLevel]=useState<Level>("N3");const[mode,setMode]=useState<"section"|"full">("section");const access=useQuery({queryKey:["full-simulation-access"],queryFn:fetchFullSimulationAccess,staleTime:30000});const a=access.data;
+ return <AppShell title="Simulasi JLPT" compact><div className="mx-auto max-w-md"><h1 className="text-[20px] font-bold">Simulasi JLPT</h1><div className="mt-3 grid grid-cols-5 rounded-xl border bg-card p-1">{levels.map(l=><button key={l} onClick={()=>setLevel(l)} className={`h-8 rounded-lg text-[11px] font-semibold ${level===l?"bg-primary text-primary-foreground":"text-muted-foreground"}`}>{l}</button>)}</div><div className="mt-3 grid grid-cols-2 rounded-xl bg-muted/50 p-1"><button onClick={()=>setMode("section")} className={`h-8 rounded-lg text-[11px] font-semibold ${mode==="section"?"bg-background shadow-sm":"text-muted-foreground"}`}>Latihan Per Bagian</button><button onClick={()=>setMode("full")} className={`h-8 rounded-lg text-[11px] font-semibold ${mode==="full"?"bg-background shadow-sm":"text-muted-foreground"}`}>Simulasi Penuh</button></div>
+ {mode==="section"?<div className="mt-3 space-y-2">{sections.map(({key,jp,label,icon:Icon,tone})=><Link key={key} to="/simulasi-bagian/$level/$section" params={{level,section:key}} className="flex items-center gap-3 rounded-xl border bg-card px-3 py-3"><span className={`grid size-8 place-items-center rounded-lg ${tone}`}><Icon className="size-4"/></span><span className="flex-1"><span className="block font-jp text-[13px] font-bold">{jp}</span><span className="text-[10px] text-muted-foreground">{label}</span></span><ArrowRight className="size-4 text-muted-foreground"/></Link>)}</div>:null}
+ <section className="mt-4 rounded-2xl border bg-card p-4"><div className="flex items-start justify-between"><div><h2 className="text-[14px] font-bold">JLPT {level} Mock Test #01</h2><p className="mt-1 text-[10px] text-muted-foreground">Simulasi lengkap semua bagian ujian</p></div><span className="rounded-full bg-primary/10 px-2 py-1 text-[9px] font-bold text-primary">{a?.plan?.toUpperCase()??"FREE"}</span></div><div className="mt-3 space-y-2 text-[11px]"><div className="flex items-center gap-2"><Timer className="size-3.5 text-primary"/><span>± 140 menit</span></div><div className="flex items-center gap-2"><ListChecks className="size-3.5 text-primary"/><span>Free: 1x simulasi penuh per bulan</span></div><div className="flex items-center gap-2"><Crown className="size-3.5 text-primary"/><span>Premium & Lifetime: simulasi penuh tanpa batas</span></div></div>{a?.allowed!==false?<Button asChild className="mt-4 h-10 w-full rounded-full text-[11px]"><Link to="/simulasi/$level" params={{level}}>Mulai Simulasi Penuh<ArrowRight className="ml-1.5 size-3.5"/></Link></Button>:<div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[10px] leading-4 text-amber-800"><div className="flex items-center gap-2 font-semibold"><LockKeyhole className="size-3.5"/>Batas akun Free bulan ini sudah terpakai.</div><p className="mt-1">Upgrade Premium/Lifetime untuk simulasi penuh tanpa batas.</p></div>}</section>
+ <section className="mt-3 rounded-2xl border border-primary/20 bg-primary/[.04] p-4"><div className="flex items-center gap-2"><Crown className="size-4 text-primary"/><h2 className="text-[12px] font-bold">ENO Monthly Exam</h2></div><p className="mt-1 text-[10px] leading-4 text-muted-foreground">Ujian bulanan khusus Premium dan Lifetime.</p><Button className="mt-3 h-9 w-full rounded-full text-[10px]" disabled={!a?.monthlyExam}>{a?.monthlyExam?"Ikuti Monthly Exam":"Khusus Premium / Lifetime"}</Button></section>
+ </div></AppShell>;
 }
