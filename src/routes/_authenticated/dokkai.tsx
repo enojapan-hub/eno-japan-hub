@@ -1,38 +1,34 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BookOpen, Clock3 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { fetchPassages } from "@/lib/learn-queries";
+import { fetchTargetLevel } from "@/lib/target-level";
 
 export const Route = createFileRoute("/_authenticated/dokkai")({ component: DokkaiPage });
 
-const LEVELS = ["ALL", "N5", "N4", "N3", "N2", "N1"] as const;
-
-type Level = (typeof LEVELS)[number];
-
 function DokkaiPage() {
-  const { data, isLoading, error } = useQuery({ queryKey: ["passages"], queryFn: fetchPassages });
-  const [level, setLevel] = useState<Level>("ALL");
-  const passages = useMemo(() => level === "ALL" ? (data ?? []) : (data ?? []).filter((p) => p.level === level), [data, level]);
+  const target = useQuery({ queryKey:["target-level"], queryFn:fetchTargetLevel, retry:1 });
+  const level = target.data;
+  const { data, isLoading, error } = useQuery({ queryKey: ["passages", level], queryFn: fetchPassages, enabled:Boolean(level) });
+  const passages = useMemo(() => (data ?? []).filter((p) => p.level === level), [data, level]);
 
-  return <AppShell title="Dokkai" description="Baca bacaan bahasa Jepang dengan cara baca, suara, dan terjemahan." backTo="/belajar" backLabel="Belajar">
+  return <AppShell title={`Dokkai${level ? ` ${level}` : ""}`} description="Bacaan mengikuti level JLPT yang dipilih di Profil." backTo="/belajar" backLabel="Materi">
     <div className="mx-auto max-w-3xl">
       <div className="mb-5 rounded-2xl border border-primary/15 bg-primary/[0.045] p-4 sm:p-5">
         <div className="flex items-start gap-3">
           <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><BookOpen className="size-5" /></div>
-          <div><h2 className="text-[16px] font-semibold tracking-tight">Latihan membaca</h2><p className="mt-1 text-[12px] leading-5 text-muted-foreground">Pilih bacaan sesuai tingkat JLPT. Buka bacaan untuk melihat cara baca, mendengarkan suara, dan terjemahan Indonesia jika tersedia.</p></div>
+          <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-3"><h2 className="text-[16px] font-semibold tracking-tight">Latihan membaca</h2>{level&&<Badge variant="secondary">{level}</Badge>}</div><p className="mt-1 text-[12px] leading-5 text-muted-foreground">Semua bacaan otomatis mengikuti target JLPT pada Profil. Untuk mengganti level, ubah target level di Profil.</p></div>
         </div>
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-2">
-        {LEVELS.map((item) => <Button key={item} type="button" size="sm" variant={level === item ? "default" : "outline"} className="h-8 rounded-lg px-3 text-[11px]" onClick={() => setLevel(item)}>{item === "ALL" ? "Semua" : item}</Button>)}
-      </div>
-
-      {!isLoading && !error && <p className="mb-3 text-[11px] text-muted-foreground">{passages.length} bacaan · {level === "ALL" ? "semua level" : level}</p>}
+      {target.isLoading && <p className="py-8 text-center text-[12px] text-muted-foreground">Memuat level profil…</p>}
+      {target.isError && <Card className="border-destructive/30 shadow-none"><CardContent className="py-6 text-center text-[12px] text-destructive">Level profil tidak dapat dimuat.</CardContent></Card>}
+      {!target.isLoading && !target.isError && !isLoading && !error && <p className="mb-3 text-[11px] text-muted-foreground">{passages.length} bacaan · {level}</p>}
       {isLoading && <p className="py-8 text-center text-[12px] text-muted-foreground">Memuat bacaan…</p>}
       {error && <Card className="border-destructive/30 shadow-none"><CardContent className="py-6 text-center text-[12px] text-destructive">Gagal memuat bacaan. Coba lagi.</CardContent></Card>}
 
@@ -45,7 +41,7 @@ function DokkaiPage() {
           </CardContent>
         </Card>)}
       </div>
-      {!isLoading && !error && !passages.length && <Card className="mt-5 shadow-none"><CardContent className="py-10 text-center text-[12px] text-muted-foreground">Belum ada bacaan untuk level {level}.</CardContent></Card>}
+      {!target.isLoading && !target.isError && !isLoading && !error && !passages.length && <Card className="mt-5 shadow-none"><CardContent className="py-10 text-center text-[12px] text-muted-foreground">Belum ada bacaan untuk level {level}.</CardContent></Card>}
     </div>
   </AppShell>;
 }
