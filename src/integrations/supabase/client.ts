@@ -1,7 +1,6 @@
 // Supabase client for ENO JAPAN.
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
-import { brokeredPreviewStorage } from './previewAuthStorage';
 
 const SUPABASE_URL = 'https://upxtqsvgppvqpbrjoitz.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_lOFCqoqCndJ5DE_3S4RKjQ_28F6nK6u';
@@ -26,11 +25,19 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
+function browserStorage() {
+  if (typeof window === 'undefined') return undefined;
+  // Production must use Supabase's normal synchronous browser storage.
+  // The old Lovable preview broker returned Promises from storage methods and
+  // is unnecessary on Vercel; on iOS Safari it can race PKCE/session hydration.
+  return window.localStorage;
+}
+
 function createSupabaseClient() {
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: { fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY) },
     auth: {
-      storage: brokeredPreviewStorage(),
+      storage: browserStorage(),
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
