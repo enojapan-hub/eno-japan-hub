@@ -11,7 +11,8 @@ function NotFoundComponent() {
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
-  return <div className="grid min-h-screen place-items-center bg-background px-4"><div className="max-w-md text-center"><h1 className="text-xl font-semibold">Halaman ini gagal dimuat</h1><p className="mt-2 text-sm text-muted-foreground">Terjadi kesalahan. Coba muat ulang atau kembali ke beranda.</p><div className="mt-6 flex justify-center gap-2"><button onClick={() => reset()} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Coba lagi</button><Link to="/" className="rounded-lg border px-4 py-2 text-sm font-medium">Beranda</Link></div></div></div>;
+  const detail = error?.message || String(error || "Unknown client error");
+  return <div className="grid min-h-screen place-items-center bg-background px-4"><div className="max-w-md text-center"><h1 className="text-xl font-semibold">Halaman ini gagal dimuat</h1><p className="mt-2 text-sm text-muted-foreground">Terjadi kesalahan pada aplikasi.</p><pre className="mt-4 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-white p-3 text-left text-xs text-red-700">{detail}</pre><div className="mt-6 flex justify-center gap-2"><button onClick={() => reset()} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Coba lagi</button><a href="/auth" className="rounded-lg border px-4 py-2 text-sm font-medium">Login ulang</a></div></div></div>;
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -57,9 +58,6 @@ function RootComponent() {
         return;
       }
       if (event === "SIGNED_IN" || event === "USER_UPDATED") {
-        // Keep cached user-bound queries fresh without invalidating the router.
-        // Router invalidation here could race the PKCE callback and leave `/`
-        // permanently pending on iOS Safari.
         void queryClient.invalidateQueries();
       }
     });
