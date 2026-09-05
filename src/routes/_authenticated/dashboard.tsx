@@ -96,15 +96,15 @@ function DashboardPage() {
           <Stat icon={Target} value={level} label="JLPT" />
         </section>
 
-        <Card className={targetDone?"rounded-2xl border-primary/35 bg-primary/[0.045] shadow-sm eno-pop":"rounded-2xl border-primary/20 bg-primary/[0.035] shadow-sm eno-rise"}>
+        <Card className={targetDone ? "rounded-2xl border-primary/35 bg-primary/[0.045] shadow-sm eno-pop" : "rounded-2xl border-primary/20 bg-primary/[0.035] shadow-sm eno-rise"}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-medium text-primary">Lanjutkan Pelajaran</p>
-                <h2 className="mt-1 truncate text-[14px] font-bold">{targetDone?"Target hari ini selesai! 🎉":continueLesson.data?.title || "Mulai target belajar hari ini"}</h2>
+                <h2 className="mt-1 truncate text-[14px] font-bold">{targetDone ? "Target hari ini selesai! 🎉" : continueLesson.data?.title || "Mulai target belajar hari ini"}</h2>
                 <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{continueLesson.data?.subtitle || "Adaptive Study Planner sudah aktif"}</p>
               </div>
-              <Link to={(continueLesson.data?.to || "/target") as "/target"} className={targetDone?"grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground eno-bounce":"grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><ArrowRight className="size-4" /></Link>
+              <Link to={(continueLesson.data?.to || "/target") as "/target"} className={targetDone ? "grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground eno-bounce" : "grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"}><ArrowRight className="size-4" /></Link>
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary eno-progress" style={{ width: `${percent}%` }} /></div>
             <div className="mt-1.5 flex items-center justify-between text-[9px] text-muted-foreground"><span>{Math.round(percent)}% target hari ini</span><span>{completed}/{target || 0}</span></div>
