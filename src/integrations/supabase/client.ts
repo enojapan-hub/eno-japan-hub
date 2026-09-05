@@ -27,9 +27,6 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 
 function browserStorage() {
   if (typeof window === 'undefined') return undefined;
-  // Production must use Supabase's normal synchronous browser storage.
-  // The old Lovable preview broker returned Promises from storage methods and
-  // is unnecessary on Vercel; on iOS Safari it can race PKCE/session hydration.
   return window.localStorage;
 }
 
@@ -40,7 +37,9 @@ function createSupabaseClient() {
       storage: browserStorage(),
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
+      // Root route explicitly owns exchangeCodeForSession(). Keeping automatic
+      // URL detection on can make Safari attempt the same PKCE code twice.
+      detectSessionInUrl: false,
       flowType: 'pkce',
     },
   });
