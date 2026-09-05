@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { buildJlptAudioSegmentUrl } from "@/lib/jlpt-audio-catalog";
+import { buildJlptAudioSegmentUrl, getJlptAudioSegment } from "@/lib/jlpt-audio-catalog";
 import { getDriveFallback } from "@/lib/jlpt-drive-fallback";
 import type { Level, RunnerQuestion } from "@/lib/learn-queries";
 
@@ -9,6 +9,9 @@ export type SimulationQuestion = RunnerQuestion & {
   skill: string | null;
   questionType: string | null;
   audioUrl: string | null;
+  audioStartSeconds: number | null;
+  audioEndSeconds: number | null;
+  audioMondai: 1 | 2 | 3 | 4 | null;
   transcriptJp: string | null;
   listeningId: string | null;
   listeningTitle: string | null;
@@ -52,6 +55,9 @@ function normalize(rows: unknown[]): SimulationQuestion[] {
           listening && typeof listening.audio_url === "string" && listening.audio_url.trim()
             ? listening.audio_url
             : null,
+        audioStartSeconds: null,
+        audioEndSeconds: null,
+        audioMondai: null,
         transcriptJp:
           listening && typeof listening.transcript_jp === "string"
             ? listening.transcript_jp
@@ -77,6 +83,9 @@ function normalize(rows: unknown[]): SimulationQuestion[] {
 function normalizeDriveFallback(level: Level, skills: string[]): SimulationQuestion[] {
   return getDriveFallback(level, skills).map((q) => ({
     ...q,
+    audioStartSeconds: null,
+    audioEndSeconds: null,
+    audioMondai: null,
     listeningId: null,
     listeningTitle: null,
     listeningSortOrder: null,
@@ -163,8 +172,16 @@ function groupListeningQuestions(items: SimulationQuestion[], target: number): S
 function attachCatalogAudio(level: Level, questions: SimulationQuestion[]): SimulationQuestion[] {
   return questions.map((question) => {
     if (question.audioUrl) return question;
-    const sourceAudio = buildJlptAudioSegmentUrl(level, question.questionType, 2024);
-    return sourceAudio ? { ...question, audioUrl: sourceAudio } : question;
+    const segment = getJlptAudioSegment(level, question.questionType, 2024);
+    if (!segment) return question;
+
+    return {
+      ...question,
+      audioUrl: buildJlptAudioSegmentUrl(level, question.questionType, 2024),
+      audioStartSeconds: segment.startSeconds,
+      audioEndSeconds: segment.endSeconds,
+      audioMondai: segment.mondai,
+    };
   });
 }
 
@@ -210,7 +227,7 @@ export async function fetchSimulationQuestionSet(
 
   const withPlayableSource = listening.flat().filter((question) => {
     if (question.audioUrl || question.transcriptJp) return true;
-    return Boolean(buildJlptAudioSegmentUrl(level, question.questionType, 2024));
+    return Boolean(getJlptAudioSegment(level, question.questionType, 2024));
   });
 
   return attachCatalogAudio(level, groupListeningQuestions(withPlayableSource, target));
