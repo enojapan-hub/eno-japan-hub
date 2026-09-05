@@ -7,8 +7,8 @@ type QuestionRow = {
   id: string
   level: string
   skill: string
-  prompt: string
-  choices: unknown
+  prompt_en: string | null
+  choices_en: unknown
   explanation_id: string | null
   explanation_en: string | null
 }
@@ -26,7 +26,7 @@ export async function runQuestionTranslationBatch(limit = 100) {
 
   const { data, error } = await supabaseAdmin
     .from('questions')
-    .select('id, level, skill, prompt, choices, explanation_id, explanation_en')
+    .select('id, level, skill, prompt_en, choices_en, explanation_id, explanation_en, prompt_id, choices_id')
     .eq('is_published', true)
     .or('prompt_id.is.null,choices_id.is.null')
     .order('level')
@@ -42,8 +42,8 @@ export async function runQuestionTranslationBatch(limit = 100) {
     id: q.id,
     level: q.level,
     skill: q.skill,
-    prompt: q.prompt,
-    choices: Array.isArray(q.choices) ? q.choices.map(String) : [],
+    prompt: q.prompt_en || '',
+    choices: Array.isArray(q.choices_en) ? q.choices_en.map(String) : [],
     explanation: q.explanation_en || q.explanation_id || null,
   }))
 
@@ -95,9 +95,12 @@ export async function runQuestionTranslationBatch(limit = 100) {
   for (const row of rows) {
     const t = byId.get(row.id)
     if (!t || !t.prompt_id?.trim() || !Array.isArray(t.choices_id) || t.choices_id.length !== 4) continue
+    const translatedChoices = t.choices_id.map(String)
     const update: Record<string, unknown> = {
       prompt_id: t.prompt_id.trim(),
-      choices_id: t.choices_id.map(String),
+      choices_id: translatedChoices,
+      prompt: t.prompt_id.trim(),
+      choices: translatedChoices,
     }
     if (typeof t.explanation_id === 'string' && t.explanation_id.trim()) update.explanation_id = t.explanation_id.trim()
     const { error: updateError } = await supabaseAdmin.from('questions').update(update).eq('id', row.id)
