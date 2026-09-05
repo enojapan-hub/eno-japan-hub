@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BookOpen, Clock3 } from "lucide-react";
 import { useMemo } from "react";
@@ -12,10 +12,16 @@ import { fetchTargetLevel } from "@/lib/target-level";
 export const Route = createFileRoute("/_authenticated/dokkai")({ component: DokkaiPage });
 
 function DokkaiPage() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isDetailRoute = pathname.startsWith("/dokkai/");
   const target = useQuery({ queryKey:["target-level"], queryFn:fetchTargetLevel, retry:1 });
   const level = target.data;
-  const { data, isLoading, error } = useQuery({ queryKey: ["passages", level], queryFn: fetchPassages, enabled:Boolean(level) });
+  const { data, isLoading, error } = useQuery({ queryKey: ["passages", level], queryFn: fetchPassages, enabled:Boolean(level) && !isDetailRoute });
   const passages = useMemo(() => (data ?? []).filter((p) => p.level === level), [data, level]);
+
+  // /dokkai/$id is a child route. The parent must render Outlet here;
+  // otherwise clicking "Baca lengkap" keeps rendering the Dokkai list.
+  if (isDetailRoute) return <Outlet />;
 
   return <AppShell title={`Dokkai${level ? ` ${level}` : ""}`} description="Bacaan mengikuti level JLPT yang dipilih di Profil." backTo="/belajar" backLabel="Materi">
     <div className="mx-auto max-w-3xl">
