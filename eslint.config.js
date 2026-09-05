@@ -15,6 +15,7 @@ export default tseslint.config(
       globals: globals.browser,
     },
     plugins: {
+      "@typescript-eslint": tseslint.plugin,
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
     },
@@ -38,6 +39,11 @@ export default tseslint.config(
   eslintPluginPrettier,
   {
     files: ["**/*.{js,ts,tsx}"],
+    plugins: {
+      "@typescript-eslint": tseslint.plugin,
+      "react-hooks": reactHooks,
+      "react-refresh": reactRefresh,
+    },
     rules: {
       // Keep the CI gate useful immediately: correctness/syntax errors remain
       // errors, while known legacy cleanup debt is visible as warnings until
