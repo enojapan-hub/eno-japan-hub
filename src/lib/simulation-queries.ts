@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getDriveFallback } from "@/lib/jlpt-drive-fallback";
 import type { Level, RunnerQuestion } from "@/lib/learn-queries";
 
 export type SimulationGroup = "vocabulary" | "grammar_reading" | "language_reading" | "listening";
@@ -11,6 +12,7 @@ export type SimulationQuestion = RunnerQuestion & {
   listeningId: string | null;
   listeningTitle: string | null;
   listeningSortOrder: number | null;
+  persistAnswer: boolean;
 };
 
 const skillsByGroup: Record<SimulationGroup, string[]> = {
@@ -59,6 +61,7 @@ function normalize(rows: unknown[]): SimulationQuestion[] {
           listening && typeof listening.title === "string" ? listening.title : null,
         listeningSortOrder:
           listening && typeof listening.sort_order === "number" ? listening.sort_order : null,
+        persistAnswer: true,
       };
     })
     .filter(
@@ -70,8 +73,30 @@ function normalize(rows: unknown[]): SimulationQuestion[] {
     );
 }
 
+function normalizeDriveFallback(level: Level, skills: string[]): SimulationQuestion[] {
+  return getDriveFallback(level, skills).map((q) => ({
+    ...q,
+    listeningId: null,
+    listeningTitle: null,
+    listeningSortOrder: null,
+    persistAnswer: false,
+  }));
+}
+
 function shuffle<T>(items: T[]): T[] {
   return [...items].sort(() => Math.random() - 0.5);
+}
+
+function fillFromDrive(
+  level: Level,
+  skills: string[],
+  databaseQuestions: SimulationQuestion[],
+  target: number,
+): SimulationQuestion[] {
+  if (databaseQuestions.length >= target) return databaseQuestions.slice(0, target);
+  const existing = new Set(databaseQuestions.map((q) => q.id));
+  const fallback = shuffle(normalizeDriveFallback(level, skills)).filter((q) => !existing.has(q.id));
+  return [...databaseQuestions, ...fallback].slice(0, target);
 }
 
 async function fetchSkill(level: Level, skill: string, limit: number) {
@@ -144,7 +169,7 @@ export async function fetchSimulationQuestionSet(
   if (group === "vocabulary") {
     const vocab = await fetchSkill(level, "vocabulary", Math.ceil(target * 0.8));
     const kanji = await fetchSkill(level, "kanji", Math.ceil(target * 0.2));
-    return shuffle([...vocab, ...kanji]).slice(0, target);
+    return fillFromDrive(level, skills, shuffle([...vocab, ...kanji]), target);
   }
 
   if (group === "grammar_reading") {
@@ -152,7 +177,7 @@ export async function fetchSimulationQuestionSet(
     const readingTarget = target - grammarTarget;
     const grammar = await fetchSkill(level, "grammar", grammarTarget);
     const reading = await fetchSkill(level, "reading", readingTarget);
-    return shuffle([...grammar, ...reading]).slice(0, target);
+    return fillFromDrive(level, skills, shuffle([...grammar, ...reading]), target);
   }
 
   if (group === "language_reading") {
@@ -167,7 +192,7 @@ export async function fetchSimulationQuestionSet(
       fetchSkill(level, "reading", readingTarget),
     ]);
 
-    return shuffle([...vocabulary, ...kanji, ...grammar, ...reading]).slice(0, target);
+    return fillFromDrive(level, skills, shuffle([...vocabulary, ...kanji, ...grammar, ...reading]), target);
   }
 
   const listening = await Promise.all(
