@@ -13,15 +13,16 @@ export type JlptAudioSource = {
   fileName: string;
   durationSeconds: number;
   sourceBookletFileId: string;
+  publicUrl: string | null;
   sections: JlptAudioSection[];
 };
 
 // N5 2024 source pair verified from the user's Google Drive.
-// Section boundaries were derived from the long answer pauses in the source MP3
-// and cross-checked against the booklet structure: Mondai 1 = 7 questions,
-// Mondai 2 = 6, Mondai 3 = 5, Mondai 4 = rapid-response/no picture section.
-// Keep this catalog separate from public audio URLs: Drive IDs are provenance
-// metadata only until the source audio is copied to an app-streamable host.
+// The source MP3 has now been copied to the public Supabase bucket used by
+// JLPT simulation assets. Section boundaries were derived from the long answer
+// pauses in the source MP3 and cross-checked against the booklet structure:
+// Mondai 1 = 7 questions, Mondai 2 = 6, Mondai 3 = 5,
+// Mondai 4 = rapid-response/no picture section.
 export const JLPT_AUDIO_CATALOG: JlptAudioSource[] = [
   {
     level: "N5",
@@ -30,6 +31,8 @@ export const JLPT_AUDIO_CATALOG: JlptAudioSource[] = [
     fileName: "Audio N5.mp3",
     durationSeconds: 1195.651,
     sourceBookletFileId: "17gzfqKj5-WB53V2rP-ln1NsSRnNcWrRj",
+    publicUrl:
+      "https://upxtqsvgppvqpirjoitz.supabase.co/storage/v1/object/public/jlpt-simulation-audio/N5/2024/Audio%20N5.mp3",
     sections: [
       { mondai: 1, questionCount: 7, startSeconds: 0, endSeconds: 399.276, boundarySource: "silence-analysis" },
       { mondai: 2, questionCount: 6, startSeconds: 399.276, endSeconds: 840.272, boundarySource: "silence-analysis" },
@@ -41,4 +44,39 @@ export const JLPT_AUDIO_CATALOG: JlptAudioSource[] = [
 
 export function getJlptAudioSource(level: JlptAudioSource["level"], year = 2024) {
   return JLPT_AUDIO_CATALOG.find((source) => source.level === level && source.year === year) ?? null;
+}
+
+export function getJlptAudioSectionForQuestionType(
+  level: JlptAudioSource["level"],
+  questionType: string | null,
+  year = 2024,
+) {
+  if (!questionType) return null;
+
+  // JLPT N5 2024 listening structure:
+  // 1 課題理解, 2 ポイント理解, 3 発話表現, 4 即時応答.
+  const n5MondaiByType: Record<string, 1 | 2 | 3 | 4> = {
+    task_based: 1,
+    point: 2,
+    expression: 3,
+    quick_response: 4,
+  };
+
+  if (level !== "N5") return null;
+  const mondai = n5MondaiByType[questionType];
+  if (!mondai) return null;
+
+  return getJlptAudioSource(level, year)?.sections.find((section) => section.mondai === mondai) ?? null;
+}
+
+export function buildJlptAudioSegmentUrl(
+  level: JlptAudioSource["level"],
+  questionType: string | null,
+  year = 2024,
+) {
+  const source = getJlptAudioSource(level, year);
+  const section = getJlptAudioSectionForQuestionType(level, questionType, year);
+  if (!source?.publicUrl || !section) return null;
+
+  return `${source.publicUrl}#t=${section.startSeconds},${section.endSeconds}`;
 }
