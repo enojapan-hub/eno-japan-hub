@@ -7,38 +7,30 @@
   "redirects": [
     {
       "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "eno-japan-hub-enonihongo.vercel.app"
-        }
-      ],
+      "has": [{ "type": "host", "value": "eno-japan-hub-enonihongo.vercel.app" }],
       "destination": "https://enonihongo.vercel.app/:path*",
       "permanent": true
     },
     {
       "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "eno-japan-hub-git-main-enonihongo.vercel.app"
-        }
-      ],
+      "has": [{ "type": "host", "value": "eno-japan-hub-git-main-enonihongo.vercel.app" }],
       "destination": "https://enonihongo.vercel.app/:path*",
       "permanent": true
     }
   ],
   "headers": [
     {
-      "source": "/",
+      "source": "/:path*",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, max-age=0" }
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Pragma", "value": "no-cache" },
+        { "key": "Expires", "value": "0" }
       ]
     },
     {
-      "source": "/auth",
+      "source": "/assets/:path*",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, max-age=0" }
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
   ],
