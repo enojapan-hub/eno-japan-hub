@@ -25,7 +25,7 @@ export type JlptAudioSource = {
 // Mondai 4 = rapid-response/no picture section.
 // Public URL intentionally lives in this catalog so the simulation runner can
 // use source audio without depending on a private Google Drive streaming URL.
-// Deployment trigger refreshed after reconnecting the Vercel GitHub identity.
+// Git integration retriggered after reconnecting the repository in Vercel.
 export const JLPT_AUDIO_CATALOG: JlptAudioSource[] = [
   {
     level: "N5",
