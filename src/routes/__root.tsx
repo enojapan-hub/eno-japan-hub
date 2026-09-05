@@ -12,7 +12,30 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const detail = error?.message || String(error || "Unknown client error");
-  return <div className="grid min-h-screen place-items-center bg-background px-4"><div className="max-w-md text-center"><h1 className="text-xl font-semibold">Halaman ini gagal dimuat</h1><p className="mt-2 text-sm text-muted-foreground">Terjadi kesalahan pada aplikasi.</p><pre className="mt-4 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-white p-3 text-left text-xs text-red-700">{detail}</pre><div className="mt-6 flex justify-center gap-2"><button onClick={() => reset()} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Coba lagi</button><a href="/auth" className="rounded-lg border px-4 py-2 text-sm font-medium">Login ulang</a></div></div></div>;
+  const moduleFailure = /importing a module script failed|failed to fetch dynamically imported module|error loading dynamically imported module|load failed/i.test(detail);
+
+  useEffect(() => {
+    if (!moduleFailure || typeof window === "undefined") return;
+    const key = `eno-module-recovery:${window.location.pathname}`;
+    if (window.sessionStorage.getItem(key) === "1") return;
+    window.sessionStorage.setItem(key, "1");
+    const url = new URL(window.location.href);
+    url.searchParams.set("_eno_build", Date.now().toString());
+    window.location.replace(url.toString());
+  }, [moduleFailure]);
+
+  function retry() {
+    if (typeof window !== "undefined" && moduleFailure) {
+      window.sessionStorage.removeItem(`eno-module-recovery:${window.location.pathname}`);
+      const url = new URL(window.location.href);
+      url.searchParams.set("_eno_build", Date.now().toString());
+      window.location.replace(url.toString());
+      return;
+    }
+    reset();
+  }
+
+  return <div className="grid min-h-screen place-items-center bg-background px-4"><div className="max-w-md text-center"><h1 className="text-xl font-semibold">Halaman ini gagal dimuat</h1><p className="mt-2 text-sm text-muted-foreground">{moduleFailure ? "Versi aplikasi di browser sudah lama. Memuat versi terbaru…" : "Terjadi kesalahan pada aplikasi."}</p><pre className="mt-4 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-white p-3 text-left text-xs text-red-700">{detail}</pre><div className="mt-6 flex justify-center gap-2"><button onClick={retry} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Muat versi terbaru</button><a href="/auth" className="rounded-lg border px-4 py-2 text-sm font-medium">Login ulang</a></div></div></div>;
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -49,6 +72,9 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(`eno-module-recovery:${window.location.pathname}`);
+    }
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
         queryClient.clear();
