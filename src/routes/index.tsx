@@ -14,20 +14,26 @@ export const Route = createFileRoute("/")({
 });
 
 const CANONICAL_ORIGIN = "https://enonihongo.vercel.app";
-const sleep = (ms: number) => new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error("timeout")), ms));
+const sleep = (ms: number) =>
+  new Promise<never>((_, reject) =>
+    window.setTimeout(() => reject(new Error("timeout")), ms),
+  );
 
 function RootEntry() {
-  const [message, setMessage] = useState("Menyelesaikan login…");
+  const [message, setMessage] = useState("Memuat enonihongo…");
 
   useEffect(() => {
     let active = true;
-    const hardRedirect = (path: string) => window.location.replace(`${CANONICAL_ORIGIN}${path}`);
+    const hardRedirect = (path: string) =>
+      window.location.replace(`${CANONICAL_ORIGIN}${path}`);
 
     async function finish() {
       if (typeof window === "undefined") return;
 
       if (window.location.origin !== CANONICAL_ORIGIN) {
-        window.location.replace(`${CANONICAL_ORIGIN}${window.location.pathname}${window.location.search}${window.location.hash}`);
+        window.location.replace(
+          `${CANONICAL_ORIGIN}${window.location.pathname}${window.location.search}${window.location.hash}`,
+        );
         return;
       }
 
@@ -43,6 +49,7 @@ function RootEntry() {
 
       try {
         if (code) {
+          if (active) setMessage("Menyelesaikan login Google…");
           const { error } = await Promise.race([
             supabase.auth.exchangeCodeForSession(code),
             sleep(8000),
@@ -67,7 +74,11 @@ function RootEntry() {
 
         try {
           const profileResult = await Promise.race([
-            supabase.from("profiles").select("onboarding_completed").eq("id", user.id).maybeSingle(),
+            supabase
+              .from("profiles")
+              .select("onboarding_completed")
+              .eq("id", user.id)
+              .maybeSingle(),
             sleep(4000),
           ]);
           if (!profileResult.error) {
@@ -82,16 +93,19 @@ function RootEntry() {
 
         hardRedirect(completed ? "/dashboard" : "/onboarding");
       } catch (caught) {
-        const text = caught instanceof Error && caught.message !== "timeout"
-          ? caught.message
-          : "Sesi login terlalu lama. Silakan login ulang.";
+        const text =
+          caught instanceof Error && caught.message !== "timeout"
+            ? caught.message
+            : "Sesi login terlalu lama. Silakan login ulang.";
         if (active) setMessage(`Login gagal: ${text}`);
         window.setTimeout(() => hardRedirect("/auth"), 1200);
       }
     }
 
     void finish();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
