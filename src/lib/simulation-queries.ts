@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { buildJlptAudioSegmentUrl } from "@/lib/jlpt-audio-catalog";
 import { getDriveFallback } from "@/lib/jlpt-drive-fallback";
 import type { Level, RunnerQuestion } from "@/lib/learn-queries";
 
@@ -159,6 +160,14 @@ function groupListeningQuestions(items: SimulationQuestion[], target: number): S
   return flattened.slice(0, target);
 }
 
+function attachCatalogAudio(level: Level, questions: SimulationQuestion[]): SimulationQuestion[] {
+  return questions.map((question) => {
+    if (question.audioUrl) return question;
+    const sourceAudio = buildJlptAudioSegmentUrl(level, question.questionType, 2024);
+    return sourceAudio ? { ...question, audioUrl: sourceAudio } : question;
+  });
+}
+
 export async function fetchSimulationQuestionSet(
   level: Level,
   group: SimulationGroup,
@@ -199,10 +208,12 @@ export async function fetchSimulationQuestionSet(
     skills.map((skill) => fetchSkill(level, skill, Math.max(target * 3, target))),
   );
 
-  return groupListeningQuestions(
-    listening.flat().filter((q) => Boolean(q.audioUrl || q.transcriptJp)),
-    target,
-  );
+  const withPlayableSource = listening.flat().filter((question) => {
+    if (question.audioUrl || question.transcriptJp) return true;
+    return Boolean(buildJlptAudioSegmentUrl(level, question.questionType, 2024));
+  });
+
+  return attachCatalogAudio(level, groupListeningQuestions(withPlayableSource, target));
 }
 
 export function getSimulationTarget(level: Level, group: SimulationGroup) {
