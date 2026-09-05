@@ -1,0 +1,44 @@
+export type JlptAudioSection = {
+  mondai: 1 | 2 | 3 | 4;
+  questionCount: number | null;
+  startSeconds: number;
+  endSeconds: number;
+  boundarySource: "silence-analysis" | "manual";
+};
+
+export type JlptAudioSource = {
+  level: "N5" | "N4" | "N3" | "N2" | "N1";
+  year: number;
+  driveFileId: string;
+  fileName: string;
+  durationSeconds: number;
+  sourceBookletFileId: string;
+  sections: JlptAudioSection[];
+};
+
+// N5 2024 source pair verified from the user's Google Drive.
+// Section boundaries were derived from the long answer pauses in the source MP3
+// and cross-checked against the booklet structure: Mondai 1 = 7 questions,
+// Mondai 2 = 6, Mondai 3 = 5, Mondai 4 = rapid-response/no picture section.
+// Keep this catalog separate from public audio URLs: Drive IDs are provenance
+// metadata only until the source audio is copied to an app-streamable host.
+export const JLPT_AUDIO_CATALOG: JlptAudioSource[] = [
+  {
+    level: "N5",
+    year: 2024,
+    driveFileId: "1sjTiG9I--2TZ1scNHtZGP5XfN1HHXaj7",
+    fileName: "Audio N5.mp3",
+    durationSeconds: 1195.651,
+    sourceBookletFileId: "17gzfqKj5-WB53V2rP-ln1NsSRnNcWrRj",
+    sections: [
+      { mondai: 1, questionCount: 7, startSeconds: 0, endSeconds: 399.276, boundarySource: "silence-analysis" },
+      { mondai: 2, questionCount: 6, startSeconds: 399.276, endSeconds: 840.272, boundarySource: "silence-analysis" },
+      { mondai: 3, questionCount: 5, startSeconds: 840.272, endSeconds: 1024.274, boundarySource: "silence-analysis" },
+      { mondai: 4, questionCount: null, startSeconds: 1024.274, endSeconds: 1195.651, boundarySource: "silence-analysis" },
+    ],
+  },
+];
+
+export function getJlptAudioSource(level: JlptAudioSource["level"], year = 2024) {
+  return JLPT_AUDIO_CATALOG.find((source) => source.level === level && source.year === year) ?? null;
+}
