@@ -9,17 +9,23 @@ import { fetchVocabListResilient } from "@/lib/vocab-resilient";
 import { fetchTargetLevel } from "@/lib/target-level";
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route=createFileRoute("/_authenticated/kotoba")({component:KotobaPage});
+const LEVELS: Level[]=["N5","N4","N3","N2","N1"];
+export const Route=createFileRoute("/_authenticated/kotoba")({
+  validateSearch:(search:Record<string,unknown>)=>({level:LEVELS.includes(search.level as Level)?search.level as Level:undefined}),
+  component:KotobaPage,
+});
 type VocabRow={id:string;term:string;reading:string|null;romaji?:string|null;meaning_id:string|null;part_of_speech:string|null;examples:unknown;level:Level;source_book?:string|null;lesson_number?:number|null;lesson_title?:string|null;source_meaning_id?:string|null;senses?:VocabSense[]};
 const tones=["bg-rose-50 text-rose-500","bg-amber-50 text-amber-500","bg-emerald-50 text-emerald-600","bg-sky-50 text-sky-600"];
 const extraKey=-1;
 function displayChapter(level:Level,raw:number){if(level==="N4"&&raw>=26&&raw<=50)return raw-25;return raw}
 
 function KotobaPage(){
+  const search=Route.useSearch();
   const {data:targetLevel,isLoading:levelLoading,error:levelError}=useQuery({queryKey:["target-level"],queryFn:fetchTargetLevel,retry:1});
-  const level:Level=targetLevel??"N5";
-  const {data,isLoading,error,refetch}=useQuery({queryKey:["vocab-primary",level],queryFn:()=>fetchVocabListResilient(level),enabled:!levelLoading,retry:2});
-  const {data:masteredRows}=useQuery({queryKey:["mastered-items","vocabulary",level],enabled:!levelLoading,queryFn:async()=>{const {data:auth}=await supabase.auth.getUser();if(!auth.user)return [] as Array<{item_id:string}>;const {data,error}=await supabase.from("user_item_progress").select("item_id").eq("user_id",auth.user.id).eq("item_type","vocabulary").eq("level",level);if(error)throw error;return (data??[]) as Array<{item_id:string}>;}});
+  const level:Level=(search.level as Level|undefined)??targetLevel??"N5";
+  const ready=Boolean(search.level)||!levelLoading;
+  const {data,isLoading,error,refetch}=useQuery({queryKey:["vocab-primary",level],queryFn:()=>fetchVocabListResilient(level),enabled:ready,retry:2});
+  const {data:masteredRows}=useQuery({queryKey:["mastered-items","vocabulary",level],enabled:ready,queryFn:async()=>{const {data:auth}=await supabase.auth.getUser();if(!auth.user)return [] as Array<{item_id:string}>;const {data,error}=await supabase.from("user_item_progress").select("item_id").eq("user_id",auth.user.id).eq("item_type","vocabulary").eq("level",level);if(error)throw error;return (data??[]) as Array<{item_id:string}>;}});
   const allCards=(data??[]) as VocabRow[];
   const lessons=useMemo(()=>[...new Set(allCards.map(x=>x.lesson_number).filter((n):n is number=>typeof n==="number"))].sort((a,b)=>a-b),[allCards]);
   const extras=useMemo(()=>allCards.filter(x=>x.lesson_number==null),[allCards]);
@@ -29,7 +35,7 @@ function KotobaPage(){
   const [review,setReview]=useState<Record<string,boolean>>({});
   const touch=useRef<number|null>(null);
   const qc=useQueryClient();
-  useEffect(()=>{if(lessons.length)setLesson(c=>c!==null&&(c===extraKey||lessons.includes(c))?c:lessons[0]);else if(extras.length)setLesson(extraKey);else setLesson(null)},[level,lessons.join(","),extras.length]);
+  useEffect(()=>{setIndex(null);if(lessons.length)setLesson(c=>c!==null&&(c===extraKey||lessons.includes(c))?c:lessons[0]);else if(extras.length)setLesson(extraKey);else setLesson(null)},[level,lessons.join(","),extras.length]);
   useEffect(()=>{if(masteredRows)setLearned(Object.fromEntries(masteredRows.map(r=>[r.item_id,true])))},[masteredRows]);
   const cards=lesson===extraKey?extras:lesson==null?allCards:allCards.filter(x=>x.lesson_number===lesson);
   const item=index==null?null:allCards[index];
@@ -43,8 +49,9 @@ function KotobaPage(){
   const sparse=lesson!==extraKey&&cards.length>0&&cards.length<10;
   const openDetail=(w:VocabRow)=>{const globalIndex=allCards.findIndex(x=>x.id===w.id&&x.lesson_number===w.lesson_number);setIndex(globalIndex>=0?globalIndex:0)};
 
-  return <AppShell title="Kotoba" backTo="/belajar" backLabel="Materi" compact>{levelLoading?<p className="py-8 text-center text-xs text-muted-foreground">Memuat level…</p>:<div className="mx-auto max-w-md">
-    {index==null?<><div className="mb-3 flex items-end justify-between"><div><h1 className="text-[20px] font-bold tracking-tight">Kosakata {level}</h1>{levelError&&<p className="mt-1 text-[10px] text-amber-700">Level profil tidak terbaca. Sementara menggunakan N5.</p>}</div><span className="text-[11px] font-semibold text-muted-foreground">{allCards.length}</span></div>
+  return <AppShell title="Kotoba" backTo="/belajar" backLabel="Materi" compact>{!ready?<p className="py-8 text-center text-xs text-muted-foreground">Memuat level…</p>:<div className="mx-auto max-w-md">
+    {index==null?<><div className="mb-3 flex items-end justify-between"><div><h1 className="text-[20px] font-bold tracking-tight">Kosakata {level}</h1>{levelError&&!search.level&&<p className="mt-1 text-[10px] text-amber-700">Level profil tidak terbaca. Sementara menggunakan N5.</p>}</div><span className="text-[11px] font-semibold text-muted-foreground">{allCards.length}</span></div>
+      <div className="mb-3 grid grid-cols-5 gap-1.5 rounded-xl border bg-card p-1.5">{LEVELS.map(l=><a key={l} href={`/kotoba?level=${l}`} className={`grid h-8 place-items-center rounded-lg text-[10px] font-semibold ${l===level?"bg-primary text-primary-foreground shadow-sm":"text-muted-foreground"}`}>{l}</a>)}</div>
       {(lessons.length>0||extras.length>0)&&<div className="relative mb-3"><select value={lesson??""} onChange={e=>{setLesson(Number(e.target.value));setIndex(null)}} className="h-10 w-full appearance-none rounded-xl border bg-background px-3 pr-9 text-[12px] font-medium outline-none focus:border-primary"><option value="">Pilih bab</option>{lessons.map(n=><option key={n} value={n}>Bab {displayChapter(level,n)} · {allCards.filter(x=>x.lesson_number===n).length} kata</option>)}{extras.length>0&&<option value={extraKey}>Materi tambahan · {extras.length} kata</option>}</select><ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/></div>}
       {sparse&&<div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] leading-4 text-amber-800"><AlertTriangle className="mt-0.5 size-3.5 shrink-0"/><p>Bab {displayChapter(level,lesson!)} baru memiliki {cards.length} kosakata yang terpetakan. Materi bab sedang dilengkapi.</p></div>}
       {error&&<div className="mb-3 rounded-xl border border-destructive/25 bg-destructive/5 p-3 text-xs text-destructive"><p className="font-semibold">Kosakata gagal dimuat dari database.</p><p className="mt-1 break-words text-[10px]">{error instanceof Error?error.message:"Koneksi database bermasalah"}</p><button onClick={()=>void refetch()} className="mt-2 rounded-lg border px-2.5 py-1.5 text-[10px] font-semibold">Coba lagi</button></div>}
