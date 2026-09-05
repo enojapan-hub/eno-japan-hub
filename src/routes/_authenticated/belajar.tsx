@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { BookOpen, ChevronRight, FileText, Headphones, NotebookTabs } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { fetchGrammarList, fetchKanjiList, fetchListeningList, fetchMyProgress, fetchPassages, type Level } from "@/lib/learn-queries";
@@ -16,7 +17,9 @@ function pct(done:number,total:number){return total > 0 ? Math.min(100, Math.rou
 
 function BelajarPage(){
   const target = useQuery({ queryKey:["target-level"], queryFn:fetchTargetLevel, retry:1 });
-  const level:Level = target.data ?? "N5";
+  const [selectedLevel,setSelectedLevel] = useState<Level>("N5");
+  useEffect(()=>{ if(target.data && LEVELS.includes(target.data)) setSelectedLevel(target.data); },[target.data]);
+  const level:Level = selectedLevel;
   const ready = !target.isLoading;
   const kanji = useQuery({ queryKey:["materi-kanji",level], queryFn:()=>fetchKanjiList(level), enabled:ready });
   const vocab = useQuery({ queryKey:["materi-vocab",level], queryFn:()=>fetchVocabListResilient(level), enabled:ready, retry:1 });
@@ -40,8 +43,8 @@ function BelajarPage(){
 
   return <AppShell compact title="Materi"><div className="mx-auto w-full max-w-md pb-2">
     <section className="mb-3"><h1 className="text-[20px] font-bold tracking-tight">Materi</h1><p className="mt-0.5 text-[10px] text-muted-foreground">Pilih level dan kategori materi</p></section>
-    <div className="mb-3 grid grid-cols-5 gap-1.5 rounded-xl border bg-card p-1.5">{LEVELS.map(l=><div key={l} className={`grid h-8 place-items-center rounded-lg text-[10px] font-semibold ${l===level?"bg-primary text-primary-foreground shadow-sm":"text-muted-foreground"}`}>{l}</div>)}</div>
-    <div className="space-y-2">{cards.map((card)=>{const Icon=card.icon;const percent=pct(card.done,card.total);return <Link key={card.to} to={card.to} className="flex items-center gap-3 rounded-2xl border bg-card px-3 py-3 shadow-[0_1px_3px_rgba(0,0,0,.04)] transition active:scale-[.995]"><span className={`grid size-12 shrink-0 place-items-center rounded-xl ${card.tone}`}>{typeof Icon==="string"?<span className="font-jp text-[26px] font-bold">{Icon}</span>:<Icon className="size-6"/>}</span><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="text-[12px] font-bold">{card.label}</p><ChevronRight className="size-4 text-muted-foreground"/></div><p className="mt-0.5 truncate text-[9px] text-muted-foreground">{card.meta}</p><div className="mt-2 flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{width:`${percent}%`}}/></div><span className="w-8 text-right text-[9px] font-semibold text-muted-foreground">{percent}%</span></div></div></Link>})}</div>
+    <div className="mb-3 grid grid-cols-5 gap-1.5 rounded-xl border bg-card p-1.5">{LEVELS.map(l=><button type="button" key={l} onClick={()=>setSelectedLevel(l)} className={`grid h-8 place-items-center rounded-lg text-[10px] font-semibold ${l===level?"bg-primary text-primary-foreground shadow-sm":"text-muted-foreground"}`}>{l}</button>)}</div>
+    <div className="space-y-2">{cards.map((card)=>{const Icon=card.icon;const percent=pct(card.done,card.total);const href=`${card.to}?level=${level}`;return <a key={card.to} href={href} className="flex items-center gap-3 rounded-2xl border bg-card px-3 py-3 shadow-[0_1px_3px_rgba(0,0,0,.04)] transition active:scale-[.995]"><span className={`grid size-12 shrink-0 place-items-center rounded-xl ${card.tone}`}>{typeof Icon==="string"?<span className="font-jp text-[26px] font-bold">{Icon}</span>:<Icon className="size-6"/>}</span><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="text-[12px] font-bold">{card.label}</p><ChevronRight className="size-4 text-muted-foreground"/></div><p className="mt-0.5 truncate text-[9px] text-muted-foreground">{card.meta}</p><div className="mt-2 flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{width:`${percent}%`}}/></div><span className="w-8 text-right text-[9px] font-semibold text-muted-foreground">{percent}%</span></div></div></a>})}</div>
     <div className="mt-3 rounded-2xl bg-emerald-50/80 px-4 py-3 text-center"><p className="text-[10px] leading-4 text-emerald-900">Konsistensi hari ini,<br/>hasil luar biasa nanti.</p><p lang="ja" className="mt-1 font-jp text-[11px] font-semibold text-emerald-700">継続は力なり</p></div>
   </div></AppShell>
 }
