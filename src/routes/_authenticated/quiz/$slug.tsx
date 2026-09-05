@@ -14,22 +14,24 @@ export const Route = createFileRoute("/_authenticated/quiz/$slug")({ component: 
 async function loadPracticeQuestions(level: Level): Promise<RunnerQuestion[]> {
   const { data, error } = await supabase
     .from("questions")
-    .select("id, prompt, prompt_note, choices, correct_index, explanation_id")
+    .select("id, prompt_id, prompt_note, choices_id, correct_index, explanation_id")
     .eq("is_published", true)
     .eq("level", level)
+    .not("prompt_id", "is", null)
+    .not("choices_id", "is", null)
     .limit(10);
   if (error) throw new Error(error.message);
   if (!data?.length) return [];
   return data
     .map(q => ({
       id: String(q.id),
-      prompt: String(q.prompt),
+      prompt: String(q.prompt_id ?? ""),
       prompt_note: q.prompt_note ?? null,
-      choices: Array.isArray(q.choices) ? q.choices.map(String) : [],
+      choices: Array.isArray(q.choices_id) ? q.choices_id.map(String) : [],
       correct_index: Number(q.correct_index),
       explanation_id: q.explanation_id ?? null,
     }))
-    .filter(q => q.choices.length === 4 && q.correct_index >= 0 && q.correct_index < 4);
+    .filter(q => q.prompt.trim().length > 0 && q.choices.length === 4 && q.choices.every(choice => choice.trim().length > 0) && q.correct_index >= 0 && q.correct_index < 4);
 }
 
 function QuizRunner() {
@@ -38,7 +40,7 @@ function QuizRunner() {
   const level = slug.startsWith("latihan-") ? slug.replace("latihan-", "").toUpperCase() as Level : null;
   const validLevel = !!level && ["N5", "N4", "N3", "N2", "N1"].includes(level);
   const { data: questions = [], isLoading, error } = useQuery({
-    queryKey: ["practice-quiz", level],
+    queryKey: ["practice-quiz-id", level],
     enabled: validLevel,
     queryFn: () => loadPracticeQuestions(level!),
     retry: 1,
@@ -73,10 +75,10 @@ function QuizRunner() {
   if (!validLevel || !level) return <AppShell title="Quiz"><Card><CardContent className="py-10 text-center"><p className="text-sm font-semibold">Quiz tidak ditemukan</p><Button className="mt-4" asChild size="sm"><Link to="/quiz">Kembali ke Quiz</Link></Button></CardContent></Card></AppShell>;
   if (isLoading) return <AppShell title={`Quiz ${level}`}><p className="text-xs text-muted-foreground">Menyiapkan soal…</p></AppShell>;
   if (error) return <AppShell title={`Quiz ${level}`}><Card><CardContent className="py-10 text-center"><p className="text-sm font-semibold text-destructive">Bank soal gagal dimuat</p><p className="mt-1 text-xs text-muted-foreground">Silakan kembali dan coba lagi setelah beberapa saat.</p><Button className="mt-4" asChild size="sm"><Link to="/quiz">Kembali</Link></Button></CardContent></Card></AppShell>;
-  if (!questions.length) return <AppShell title={`Quiz ${level}`}><Card><CardContent className="py-10 text-center"><p className="text-sm font-semibold">Soal {level} belum tersedia</p><p className="mt-1 text-xs text-muted-foreground">Quiz akan muncul setelah soal sumber yang terverifikasi dipublikasikan.</p><Button className="mt-4" asChild size="sm"><Link to="/quiz">Kembali</Link></Button></CardContent></Card></AppShell>;
+  if (!questions.length) return <AppShell title={`Quiz ${level}`}><Card><CardContent className="py-10 text-center"><p className="text-sm font-semibold">Soal Indonesia {level} belum tersedia</p><p className="mt-1 text-xs text-muted-foreground">Quiz hanya menampilkan soal yang arti dan pilihan jawabannya sudah diverifikasi dalam Bahasa Indonesia.</p><Button className="mt-4" asChild size="sm"><Link to="/quiz">Kembali</Link></Button></CardContent></Card></AppShell>;
 
   if (finished) return <AppShell title={`Hasil Quiz ${level}`}>
-    <div className="mx-auto max-w-2xl space-y-4"><Card className="border-border/70 shadow-none"><CardContent className="p-6 text-center"><div className="mx-auto mb-3 grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary"><Check className="size-7" /></div><p className="text-xs text-muted-foreground">Skor kamu</p><div className="mt-1 text-4xl font-semibold">{score}/{questions.length}</div><Badge className="mt-2">{Math.round(score / questions.length * 100)}%</Badge><p className="mt-3 text-xs text-muted-foreground">{saving ? "Menyimpan hasil…" : "Hasil tersimpan jika kamu sudah login."}</p></CardContent></Card><Card className="shadow-none"><CardContent className="p-4"><h2 className="text-sm font-semibold">Pembahasan</h2><div className="mt-3 space-y-3">{questions.map((q, i) => <div key={q.id} className="rounded-xl border p-3"><p className="text-xs font-medium">{i + 1}. {q.prompt}</p><p className="mt-1 text-[11px] text-muted-foreground">Jawaban: {q.choices[q.correct_index]}</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">{q.explanation_id ?? "Pembahasan belum tersedia untuk soal ini."}</p></div>)}</div></CardContent></Card><div className="flex gap-2"><Button className="flex-1" onClick={() => navigate({ to: "/quiz/$slug", params: { slug } })}>Ulangi</Button><Button className="flex-1" variant="outline" asChild><Link to="/quiz">Daftar Quiz</Link></Button></div></div>
+    <div className="mx-auto max-w-2xl space-y-4"><Card className="border-border/70 shadow-none"><CardContent className="p-6 text-center"><div className="mx-auto mb-3 grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary"><Check className="size-7" /></div><p className="text-xs text-muted-foreground">Skor kamu</p><div className="mt-1 text-4xl font-semibold">{score}/{questions.length}</div><Badge className="mt-2">{Math.round(score / questions.length * 100)}%</Badge><p className="mt-3 text-xs text-muted-foreground">{saving ? "Menyimpan hasil…" : "Hasil tersimpan jika kamu sudah login."}</p></CardContent></Card><Card className="shadow-none"><CardContent className="p-4"><h2 className="text-sm font-semibold">Pembahasan</h2><div className="mt-3 space-y-3">{questions.map((q, i) => <div key={q.id} className="rounded-xl border p-3"><p className="text-xs font-medium">{i + 1}. {q.prompt}</p><p className="mt-1 text-[11px] text-muted-foreground">Jawaban: {q.choices[q.correct_index]}</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">{q.explanation_id ?? "Pembahasan Bahasa Indonesia belum tersedia untuk soal ini."}</p></div>)}</div></CardContent></Card><div className="flex gap-2"><Button className="flex-1" onClick={() => navigate({ to: "/quiz/$slug", params: { slug } })}>Ulangi</Button><Button className="flex-1" variant="outline" asChild><Link to="/quiz">Daftar Quiz</Link></Button></div></div>
   </AppShell>;
 
   const progress = Math.round((index + 1) / questions.length * 100);
