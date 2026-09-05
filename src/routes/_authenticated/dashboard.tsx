@@ -56,6 +56,7 @@ function DashboardPage() {
   const completed = adaptive.data?.completed ?? 0;
   const target = adaptive.data?.target ?? 0;
   const percent = target ? Math.min(100, (completed / target) * 100) : 0;
+  const targetDone = target > 0 && completed >= target;
   const accountLevel = getAccountLevel(me?.xp ?? 0);
   const weekly = metrics.data?.weekly ?? [];
   const maxMinutes = Math.max(1, ...weekly.map((d) => d.minutes));
@@ -72,12 +73,12 @@ function DashboardPage() {
 
   return (
     <AppShell compact title="Home">
-      <div className="mx-auto max-w-3xl space-y-4">
+      <div className="mx-auto max-w-3xl space-y-4 eno-rise">
         <section className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex items-center gap-3">
-            <div className="relative shrink-0">
+            <div className="relative shrink-0 eno-pop">
               {profile?.avatar_url ? <img src={profile.avatar_url} alt={name} className="size-14 rounded-full border object-cover" /> : <div className="grid size-14 place-items-center rounded-full bg-primary/10 text-lg font-bold text-primary">{name.slice(0, 1).toUpperCase()}</div>}
-              <span className="absolute -bottom-0.5 -right-0.5 rounded-full border-2 border-background bg-primary px-1.5 py-0.5 text-[8px] font-bold text-primary-foreground">Lv {accountLevel.level}</span>
+              <span className="absolute -bottom-0.5 -right-0.5 rounded-full border-2 border-background bg-primary px-1.5 py-0.5 text-[8px] font-bold text-primary-foreground eno-bounce">Lv {accountLevel.level}</span>
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-medium text-muted-foreground">Selamat Datang Kembali 👋</p>
@@ -91,29 +92,29 @@ function DashboardPage() {
         <section className="grid grid-cols-4 gap-2">
           <Stat icon={Zap} value={(me?.xp ?? 0).toLocaleString("id-ID")} label="XP" />
           <Stat icon={Sparkles} value={(me?.points ?? 0).toLocaleString("id-ID")} label="Points" />
-          <Stat icon={Flame} value={`${me?.streak ?? 0}`} label="Hari" />
+          <div className="rounded-2xl border bg-card px-2 py-2.5 text-center eno-rise"><Flame className="mx-auto size-3.5 text-orange-500 eno-pulse-soft" /><p className="mt-1 text-[11px] font-bold leading-none">{me?.streak ?? 0}</p><p className="mt-1 text-[8px] text-muted-foreground">Hari</p></div>
           <Stat icon={Target} value={level} label="JLPT" />
         </section>
 
-        <Card className="rounded-2xl border-primary/20 bg-primary/[0.035] shadow-sm">
+        <Card className={targetDone?"rounded-2xl border-primary/35 bg-primary/[0.045] shadow-sm eno-pop":"rounded-2xl border-primary/20 bg-primary/[0.035] shadow-sm eno-rise"}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-medium text-primary">Lanjutkan Pelajaran</p>
-                <h2 className="mt-1 truncate text-[14px] font-bold">{continueLesson.data?.title || "Mulai target belajar hari ini"}</h2>
+                <h2 className="mt-1 truncate text-[14px] font-bold">{targetDone?"Target hari ini selesai! 🎉":continueLesson.data?.title || "Mulai target belajar hari ini"}</h2>
                 <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{continueLesson.data?.subtitle || "Adaptive Study Planner sudah aktif"}</p>
               </div>
-              <Link to={(continueLesson.data?.to || "/target") as "/target"} className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><ArrowRight className="size-4" /></Link>
+              <Link to={(continueLesson.data?.to || "/target") as "/target"} className={targetDone?"grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground eno-bounce":"grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><ArrowRight className="size-4" /></Link>
             </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} /></div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary eno-progress" style={{ width: `${percent}%` }} /></div>
             <div className="mt-1.5 flex items-center justify-between text-[9px] text-muted-foreground"><span>{Math.round(percent)}% target hari ini</span><span>{completed}/{target || 0}</span></div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl">
+        <Card className="rounded-2xl eno-rise">
           <CardContent className="p-3">
-            <div className="flex items-center justify-between"><div><p className="text-[10px] font-semibold">Level Akun {accountLevel.level}</p><p className="mt-0.5 text-[9px] text-muted-foreground">{accountLevel.xpToNext > 0 ? `${accountLevel.xpToNext.toLocaleString("id-ID")} XP lagi ke Lv ${accountLevel.level + 1}` : "Level maksimum"}</p></div><span className="text-[10px] font-bold text-primary">{Math.round(accountLevel.progress)}%</span></div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${accountLevel.progress}%` }} /></div>
+            <div className="flex items-center justify-between"><div><p className="text-[10px] font-semibold">Level Akun {accountLevel.level}</p><p className="mt-0.5 text-[9px] text-muted-foreground">{accountLevel.xpToNext > 0 ? `${accountLevel.xpToNext.toLocaleString("id-ID")} XP lagi ke Lv ${accountLevel.level + 1}` : "Level maksimum"}</p></div><span className="text-[10px] font-bold text-primary eno-pop">{Math.round(accountLevel.progress)}%</span></div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary eno-progress" style={{ width: `${accountLevel.progress}%` }} /></div>
           </CardContent>
         </Card>
 
@@ -123,19 +124,19 @@ function DashboardPage() {
             {materialMeta.map(({ key, label, icon: Icon }) => {
               const metric = metrics.data?.progress?.[key] ?? { done: 0, total: 0 };
               const value = metric.total ? Math.round((metric.done / metric.total) * 100) : 0;
-              return <div key={key} className="rounded-2xl border bg-card p-2 text-center"><div className="mx-auto grid size-9 place-items-center rounded-full bg-primary/10 text-primary"><Icon className="size-4" /></div><p className="mt-1.5 text-[9px] font-semibold">{label}</p><p className="mt-0.5 text-[8px] text-muted-foreground">{metric.done} / {metric.total}</p><div className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${value}%` }} /></div></div>;
+              return <div key={key} className="rounded-2xl border bg-card p-2 text-center eno-rise"><div className="mx-auto grid size-9 place-items-center rounded-full bg-primary/10 text-primary"><Icon className="size-4" /></div><p className="mt-1.5 text-[9px] font-semibold">{label}</p><p className="mt-0.5 text-[8px] text-muted-foreground">{metric.done} / {metric.total}</p><div className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary eno-progress" style={{ width: `${value}%` }} /></div></div>;
             })}
           </div>
         </section>
 
-        <Card className="rounded-2xl">
+        <Card className="rounded-2xl eno-rise">
           <CardContent className="p-4">
             <div className="flex items-center justify-between"><div><h2 className="text-[13px] font-semibold">Statistik Mingguan</h2><p className="mt-0.5 text-[9px] text-muted-foreground">Data aktivitas 7 hari terakhir, bukan contoh.</p></div><Clock3 className="size-4 text-primary" /></div>
             <div className="mt-4 flex h-20 items-end justify-between gap-2">{weekly.map((day) => {
               const date = new Date(`${day.date}T00:00:00+09:00`);
               const label = new Intl.DateTimeFormat("id-ID", { weekday: "short", timeZone: "Asia/Tokyo" }).format(date).replace(".", "");
               const height = day.minutes > 0 ? Math.max(8, (day.minutes / maxMinutes) * 100) : 3;
-              return <div key={day.date} className="flex flex-1 flex-col items-center gap-1"><div title={`${day.minutes} menit · ${day.xp} XP`} className="w-full max-w-7 rounded-t-md bg-primary/70" style={{ height: `${height}%` }} /><span className="text-[8px] text-muted-foreground">{label}</span></div>;
+              return <div key={day.date} className="flex flex-1 flex-col items-center gap-1"><div title={`${day.minutes} menit · ${day.xp} XP`} className="w-full max-w-7 rounded-t-md bg-primary/70 eno-rise" style={{ height: `${height}%` }} /><span className="text-[8px] text-muted-foreground">{label}</span></div>;
             })}</div>
             <div className="mt-2 flex items-center justify-between text-[9px] text-muted-foreground"><span>{weeklyMinutes} menit minggu ini</span><span>{weeklyXp.toLocaleString("id-ID")} XP</span></div>
           </CardContent>
@@ -151,5 +152,5 @@ function DashboardPage() {
 }
 
 function Stat({ icon: Icon, value, label }: { icon: typeof Zap; value: string; label: string }) {
-  return <div className="rounded-2xl border bg-card px-2 py-2.5 text-center"><Icon className="mx-auto size-3.5 text-primary" /><p className="mt-1 text-[11px] font-bold leading-none">{value}</p><p className="mt-1 text-[8px] text-muted-foreground">{label}</p></div>;
+  return <div className="rounded-2xl border bg-card px-2 py-2.5 text-center eno-rise"><Icon className="mx-auto size-3.5 text-primary" /><p className="mt-1 text-[11px] font-bold leading-none">{value}</p><p className="mt-1 text-[8px] text-muted-foreground">{label}</p></div>;
 }
