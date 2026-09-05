@@ -17,6 +17,13 @@ export type JlptAudioSource = {
   sections: JlptAudioSection[];
 };
 
+export type JlptAudioSegment = {
+  url: string;
+  startSeconds: number;
+  endSeconds: number;
+  mondai: 1 | 2 | 3 | 4;
+};
+
 // N5 2024 source pair verified from the user's Google Drive.
 // The source MP3 has now been copied to the public Supabase bucket used by
 // JLPT simulation assets. Section boundaries were derived from the long answer
@@ -25,7 +32,6 @@ export type JlptAudioSource = {
 // Mondai 4 = rapid-response/no picture section.
 // Public URL intentionally lives in this catalog so the simulation runner can
 // use source audio without depending on a private Google Drive streaming URL.
-// Vercel deployment retriggered after verified-commit enforcement was disabled.
 export const JLPT_AUDIO_CATALOG: JlptAudioSource[] = [
   {
     level: "N5",
@@ -72,14 +78,30 @@ export function getJlptAudioSectionForQuestionType(
   return getJlptAudioSource(level, year)?.sections.find((section) => section.mondai === mondai) ?? null;
 }
 
+export function getJlptAudioSegment(
+  level: JlptAudioSource["level"],
+  questionType: string | null,
+  year = 2024,
+): JlptAudioSegment | null {
+  const source = getJlptAudioSource(level, year);
+  const section = getJlptAudioSectionForQuestionType(level, questionType, year);
+  if (!source?.publicUrl || !section) return null;
+
+  return {
+    url: source.publicUrl,
+    startSeconds: section.startSeconds,
+    endSeconds: section.endSeconds,
+    mondai: section.mondai,
+  };
+}
+
 export function buildJlptAudioSegmentUrl(
   level: JlptAudioSource["level"],
   questionType: string | null,
   year = 2024,
 ) {
-  const source = getJlptAudioSource(level, year);
-  const section = getJlptAudioSectionForQuestionType(level, questionType, year);
-  if (!source?.publicUrl || !section) return null;
+  const segment = getJlptAudioSegment(level, questionType, year);
+  if (!segment) return null;
 
-  return `${source.publicUrl}#t=${section.startSeconds},${section.endSeconds}`;
+  return `${segment.url}#t=${segment.startSeconds},${segment.endSeconds}`;
 }
